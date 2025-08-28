@@ -1,0 +1,384 @@
+CREATE DATABASE game_players;
+USE game_players;
+
+CREATE TABLE players (player_name varchar(128) not null, nickname varchar(128) not null, birth_year int not null, score int not null);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Joe Smith', 'The Blacksmith', 1989, 2435);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Bob Smith', 'Smithy', 1990, 2210);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Mark Johnson', 'Marklar', 1992, 1275);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('John Michaels', 'Old Master', 1955, 2925);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Sophia Williams', 'Wise One', 1985, 2320);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Jane Doe', 'Anonymous Alice', 1988, 1875);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Brett Jakobs', 'Brett U Bet', 1993, 1600);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Jake Johnson', 'Jake The Snake', 1987, 1765);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Victoria Reilly', 'Vika', 1991, 1955);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Hope Winston', 'Hoppy', 1990, 2345);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Bob Carrol', 'Bob The Slob', 1980, 1945);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Lewis Liddel', 'Mad Hatter', 1976, 2245);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Mark Michaels', 'MandM', 1995, 1890);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Jane Johnson', 'JaneyJ', 1987, 2135);
+INSERT INTO players(player_name, nickname, birth_year, score) VALUES ('Olivia Marshals', 'OliMari', 1991, 1875);
+
+/*
+
+-- Complete 'players' table
+
++-----------------+-----------------+------------+-------+
+| player_name     | nickname        | birth_year | score |
++-----------------+-----------------+------------+-------+
+| Joe Smith       | The Blacksmith  |       1989 |  2435 |
+| Bob Smith       | Smithy          |       1990 |  2210 |
+| Mark Johnson    | Marklar         |       1992 |  1275 |
+| John Michaels   | Old Master      |       1955 |  2925 |
+| Sophia Williams | Wise One        |       1985 |  2320 |
+| Jane Doe        | Anonymous Alice |       1988 |  1875 |
+| Brett Jakobs    | Brett U Bet     |       1993 |  1600 |
+| Jake Johnson    | Jake The Snake  |       1987 |  1765 |
+| Victoria Reilly | Vika            |       1991 |  1955 |
+| Hope Winston    | Hoppy           |       1990 |  2345 |
+| Bob Carrol      | Bob The Slob    |       1980 |  1945 |
+| Lewis Liddel    | Mad Hatter      |       1976 |  2245 |
+| Mark Michaels   | MandM           |       1995 |  1890 |
+| Jane Johnson    | JaneyJ          |       1987 |  2135 |
+| Olivia Marshals | OliMari         |       1991 |  1875 |
++-----------------+-----------------+------------+-------+
+
+----------------------------------------------------------
+
+-- Output nickname and scores if score is greater than or equal to 2,000
+
+mysql> SELECT nickname, score 
+FROM players 
+WHERE score >= 2000;
++----------------+-------+
+| nickname       | score |
++----------------+-------+
+| The Blacksmith |  2435 |
+| Smithy         |  2210 |
+| Old Master     |  2925 |
+| Wise One       |  2320 |
+| Hoppy          |  2345 |
+| Mad Hatter     |  2245 |
+| JaneyJ         |  2135 |
++----------------+-------+
+
+----------------------------------------------------------
+
+-- Output sum of all player scores
+
+mysql> SELECT SUM(score) FROM players;
++------------+
+| SUM(score) |
++------------+
+|      30795 |
++------------+
+
+-----------------------------------------------------------
+
+-- Output the nicnames and scores of the players with the top 5 scores
+
+mysql> SELECT nickname, score 
+FROM players 
+ORDER BY score DESC LIMIT 5;
++----------------+-------+
+| nickname       | score |
++----------------+-------+
+| Old Master     |  2925 |
+| The Blacksmith |  2435 |
+| Hoppy          |  2345 |
+| Wise One       |  2320 |
+| Mad Hatter     |  2245 |
++----------------+-------+
+
+------------------------------------------------------------
+
+-- Output details for all players whose first name starts with 'J'
+
+mysql> SELECT player_name, nickname, score 
+FROM players 
+WHERE player_name LIKE 'J%';
++---------------+-----------------+-------+
+| player_name   | nickname        | score |
++---------------+-----------------+-------+
+| Joe Smith     | The Blacksmith  |  2435 |
+| John Michaels | Old Master      |  2925 |
+| Jane Doe      | Anonymous Alice |  1875 |
+| Jake Johnson  | Jake The Snake  |  1765 |
+| Jane Johnson  | JaneyJ          |  2135 |
++---------------+-----------------+-------+
+
+---------------------------------------------------------------
+
+-- Output player info where the first letter of the player's real name is the same as the first letter of their nickname
+
+mysql> SELECT player_name, nickname, score 
+FROM players 
+WHERE LEFT(player_name, 1) = LEFT(nickname, 1);
++-----------------+----------------+-------+
+| player_name     | nickname       | score |
++-----------------+----------------+-------+
+| Mark Johnson    | Marklar        |  1275 |
+| Brett Jakobs    | Brett U Bet    |  1600 |
+| Jake Johnson    | Jake The Snake |  1765 |
+| Victoria Reilly | Vika           |  1955 |
+| Hope Winston    | Hoppy          |  2345 |
+| Bob Carrol      | Bob The Slob   |  1945 |
+| Mark Michaels   | MandM          |  1890 |
+| Jane Johnson    | JaneyJ         |  2135 |
+| Olivia Marshals | OliMari        |  1875 |
++-----------------+----------------+-------+
+
+---------------------------------------------------------------
+
+-- Output player details where their nickname has 5 or less letters
+
+mysql> SELECT player_name, nickname, score 
+FROM players 
+WHERE LENGTH(nickname) <= 5 ORDER BY score DESC;
++-----------------+----------+-------+
+| player_name     | nickname | score |
++-----------------+----------+-------+
+| Hope Winston    | Hoppy    |  2345 |
+| Victoria Reilly | Vika     |  1955 |
+| Mark Michaels   | MandM    |  1890 |
++-----------------+----------+-------+
+
+---------------------------------------------------------------
+
+-- Output nicknames and scores if the player has less than or equal to 1700 score
+
+mysql> SELECT nickname, score 
+FROM players 
+WHERE score <= 1700 ORDER BY score;
++-------------+-------+
+| nickname    | score |
++-------------+-------+
+| Marklar     |  1275 |
+| Brett U Bet |  1600 |
++-------------+-------+
+
+---------------------------------------------------------------
+
+-- Output number of players with a score greater than or equal to 2300
+
+mysql> SELECT COUNT(score) 
+FROM players 
+WHERE score >= 2300;
++--------------+
+| COUNT(score) |
++--------------+
+|            4 |
++--------------+
+1 row in set (0.01 sec)
+
+-- Output number of players with a score greater than or equal to 2000
+
+mysql> SELECT COUNT(score) 
+FROM players 
+WHERE score >= 2000;
++--------------+
+| COUNT(score) |
++--------------+
+|            7 |
++--------------+
+1 row in set (0.00 sec)
+
+-----------------------------------------------------------------
+
+-- Get average of all player's scores
+
+mysql> SELECT AVG(score) FROM players;
++------------+
+| AVG(score) |
++------------+
+|  2053.0000 |
++------------+
+1 row in set (0.00 sec)
+
+------------------------------------------------------------------
+
+-- Output nicknames, birth year, and score if birth year between 1991 and 2000 (Inclusive)
+
+mysql> SELECT nickname, birth_year, score 
+FROM players 
+WHERE birth_year >= 1991 AND birth_year <= 2000;
++-------------+------------+-------+
+| nickname    | birth_year | score |
++-------------+------------+-------+
+| Marklar     |       1992 |  1275 |
+| Brett U Bet |       1993 |  1600 |
+| Vika        |       1991 |  1955 |
+| MandM       |       1995 |  1890 |
+| OliMari     |       1991 |  1875 |
++-------------+------------+-------+
+
+------------------------------------------------------------------
+
+-- Output all players sorted by birth year (Oldest first)
+
+mysql> SELECT nickname, birth_year, score 
+FROM players 
+ORDER BY birth_year;
++-----------------+------------+-------+
+| nickname        | birth_year | score |
++-----------------+------------+-------+
+| Old Master      |       1955 |  2925 |
+| Mad Hatter      |       1976 |  2245 |
+| Bob The Slob    |       1980 |  1945 |
+| Wise One        |       1985 |  2320 |
+| Jake The Snake  |       1987 |  1765 |
+| JaneyJ          |       1987 |  2135 |
+| Anonymous Alice |       1988 |  1875 |
+| The Blacksmith  |       1989 |  2435 |
+| Smithy          |       1990 |  2210 |
+| Hoppy           |       1990 |  2345 |
+| Vika            |       1991 |  1955 |
+| OliMari         |       1991 |  1875 |
+| Marklar         |       1992 |  1275 |
+| Brett U Bet     |       1993 |  1600 |
+| MandM           |       1995 |  1890 |
++-----------------+------------+-------+
+
+-------------------------------------------------------------------
+
+mysql> SELECT nickname, birth_year, score 
+FROM players 
+WHERE birth_year >= 1991 AND score >= 2000;
+Empty set (0.00 sec)
+
+-- Output players with birth year greater than or equal to 1991 and score greater than or equal to 1800
+
+mysql> SELECT nickname, birth_year, score 
+FROM players 
+WHERE birth_year >= 1991 AND score >= 1800;
++----------+------------+-------+
+| nickname | birth_year | score |
++----------+------------+-------+
+| Vika     |       1991 |  1955 |
+| MandM    |       1995 |  1890 |
+| OliMari  |       1991 |  1875 |
++----------+------------+-------+
+
+-----------------------------------------------------------------------------
+
+-- Output all player details if their real name starts with 'A', 'B', or 'C' and order by highest score first
+
+mysql> SELECT * FROM players 
+WHERE player_name LIKE 'A%' OR player_name LIKE 'B%' OR player_name LIKE 'C%' 
+ORDER BY score DESC;
++--------------+--------------+------------+-------+
+| player_name  | nickname     | birth_year | score |
++--------------+--------------+------------+-------+
+| Bob Smith    | Smithy       |       1990 |  2210 |
+| Bob Carrol   | Bob The Slob |       1980 |  1945 |
+| Brett Jakobs | Brett U Bet  |       1993 |  1600 |
++--------------+--------------+------------+-------+
+
+-----------------------------------------------------------------------------------------------------------------------
+
+-- Output all player details if their real name starts with 'J', 'B', or 'M' and order by highest score first
+
+mysql> SELECT * FROM players 
+WHERE player_name LIKE 'J%' OR player_name LIKE 'B%' OR player_name LIKE 'M%' 
+ORDER BY score DESC;
++---------------+-----------------+------------+-------+
+| player_name   | nickname        | birth_year | score |
++---------------+-----------------+------------+-------+
+| John Michaels | Old Master      |       1955 |  2925 |
+| Joe Smith     | The Blacksmith  |       1989 |  2435 |
+| Bob Smith     | Smithy          |       1990 |  2210 |
+| Jane Johnson  | JaneyJ          |       1987 |  2135 |
+| Bob Carrol    | Bob The Slob    |       1980 |  1945 |
+| Mark Michaels | MandM           |       1995 |  1890 |
+| Jane Doe      | Anonymous Alice |       1988 |  1875 |
+| Jake Johnson  | Jake The Snake  |       1987 |  1765 |
+| Brett Jakobs  | Brett U Bet     |       1993 |  1600 |
+| Mark Johnson  | Marklar         |       1992 |  1275 |
++---------------+-----------------+------------+-------+
+
+
+-----------------------------------------------------------------------------------------------------
+
+-- Output nicknames, birth year, and score if the player's birth year is greater than or equal to 1991 and sort by youngest first
+
+mysql> SELECT nickname, birth_year, score 
+FROM players WHERE birth_year >= 1991 
+ORDER BY birth_year DESC;
++-------------+------------+-------+
+| nickname    | birth_year | score |
++-------------+------------+-------+
+| MandM       |       1995 |  1890 |
+| Brett U Bet |       1993 |  1600 |
+| Marklar     |       1992 |  1275 |
+| Vika        |       1991 |  1955 |
+| OliMari     |       1991 |  1875 |
++-------------+------------+-------+
+
+-------------------------------------------------------------------------------------------------------
+
+-- Output player details if their score is higher than their birth year value
+
+mysql> SELECT nickname, birth_year, score 
+FROM players 
+WHERE score > birth_year 
+ORDER BY birth_year;
++----------------+------------+-------+
+| nickname       | birth_year | score |
++----------------+------------+-------+
+| Old Master     |       1955 |  2925 |
+| Mad Hatter     |       1976 |  2245 |
+| Wise One       |       1985 |  2320 |
+| JaneyJ         |       1987 |  2135 |
+| The Blacksmith |       1989 |  2435 |
+| Smithy         |       1990 |  2210 |
+| Hoppy          |       1990 |  2345 |
++----------------+------------+-------+
+
+-------------------------------------------------------------------------------
+
+-- Output all players where their nickname is longer than their real name
+
+mysql> SELECT player_name, nickname FROM players 
+WHERE LENGTH(nickname) > LENGTH(player_name);
++--------------+-----------------+
+| player_name  | nickname        |
++--------------+-----------------+
+| Joe Smith    | The Blacksmith  |
+| Jane Doe     | Anonymous Alice |
+| Jake Johnson | Jake The Snake  |
+| Bob Carrol   | Bob The Slob    |
++--------------+-----------------+
+
+----------------------------------------------------------------
+
+-- Output the lowest score
+
+mysql> SELECT MIN(Score) FROM players;
++------------+
+| MIN(Score) |
++------------+
+|       1275 |
++------------+
+
+-- Output all players where their score is greater than the lowest score by at least 500
+
+mysql> SELECT Nickname, Score FROM players 
+WHERE Score > (SELECT MIN(score) FROM players) + 500 
+ORDER BY Score DESC;
++-----------------+-------+
+| Nickname        | Score |
++-----------------+-------+
+| Old Master      |  2925 |
+| The Blacksmith  |  2435 |
+| Hoppy           |  2345 |
+| Wise One        |  2320 |
+| Mad Hatter      |  2245 |
+| Smithy          |  2210 |
+| JaneyJ          |  2135 |
+| Vika            |  1955 |
+| Bob The Slob    |  1945 |
+| MandM           |  1890 |
+| Anonymous Alice |  1875 |
+| OliMari         |  1875 |
++-----------------+-------+
+
+*/
