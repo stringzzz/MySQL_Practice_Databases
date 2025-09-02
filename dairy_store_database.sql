@@ -7,7 +7,8 @@ USE dairy_store_database;
 
 CREATE TABLE prices (
 	item_id varchar(6) not null primary key CHECK (LENGTH(item_id) = 6),
-	item_name varchar(128) not null, price float
+	item_name varchar(128) not null, 
+	price float
 );
 
 INSERT INTO prices (item_id, item_name, price) VALUES 
