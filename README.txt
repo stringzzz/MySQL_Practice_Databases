@@ -4,8 +4,7 @@ Contained in this repo are some .sql files for producing sample databases with c
 
 'library1.sql' has two tables, it's meant for practicing JOINs for just two tables, still pretty simplified.
 
-Finally, 'dairy_store_database.sql' is made to be much more realistic, there are six tables in it and they can be JOINed together in many different ways,
-good for practice after learning more.
+Finally, 'dairy_store_database.sql' is made to be much more realistic, there are six tables in it and they can be JOINed together in many different ways, good for practice after learning more.
 
 Additionally, each file has commentation containing some sample queries that can work with the table(s) in that particular database, along with what each query is grabbing in plain English.
 I hope these can be of some use to anyone just starting to learn SQL, as they did help me in practicing.
