@@ -1,5 +1,5 @@
 /*
---stringzzz, Ghostwarez Co. 09-01-2025
+--stringzzz, Ghostwarez Co. 09-02-2025
 */
 
 CREATE DATABASE dairy_store_database;
