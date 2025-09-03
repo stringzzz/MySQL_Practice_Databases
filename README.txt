@@ -1,7 +1,6 @@
 Contained in this repo are some .sql files for producing sample databases with completely made up data for practicing SQL queries.
 
-'game_player_table1.sql' and 'global_players1.sql' only contains one table to keep things as simple as possible, a good starting point for 
-practicing simple queries.
+'game_player_table1.sql' and 'global_players1.sql' only contains one table to keep things as simple as possible, a good starting point for practicing simple queries.
 
 'library1.sql' has two tables, it's meant for practicing JOINs for just two tables, still pretty simplified.
 
