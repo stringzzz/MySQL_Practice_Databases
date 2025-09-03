@@ -99,6 +99,30 @@ INSERT INTO employees (emp_id, store_id, position, first_name, last_name, birth_
 	('30039', '1259', 'Cashier', 'Selina', 'Sutherland', 1991, 19.25),
 	('30040', '1325', 'Cashier', 'Tiffany', 'Carpenter', 1993, 19.75);
 
+CREATE TABLE former_employees (
+	emp_id varchar(5) not null primary key CHECK (LENGTH(emp_id) = 5), 
+	store_id varchar(4) not null CHECK (LENGTH(store_id) = 4), 
+	foreign key (store_id) references stores(store_id), 
+	position varchar(64) not null, 
+	first_name varchar(64) not null, 
+	last_name varchar(64) not null, 
+	birth_year int not null, 
+	wage float not null
+);
+
+INSERT INTO former_employees (emp_id, store_id, position, first_name, last_name, birth_year, wage) VALUES 
+	('30120', '1217', 'Cashier', 'Mario', 'Luigi', 1982, 20.00),
+	('30121', '1258', 'Cashier', 'Joseph', 'Navarro', 1978, 22.00),
+	('30122', '1258', 'Shipping & Receiving', 'Michael', 'Mosley', 1963, 21.50),
+	('30123', '1259', 'Custodian', 'Marcus', 'Jackson', 1987, 17.25),
+	('30124', '1325', 'Manager', 'Jarod', 'Marklar', 1957, 48.00),
+	('30125', '1217', 'Cashier', 'Richard', 'McDonald', 1982, 19.00),
+	('30126', '1218', 'Custodian', 'Ava', 'Liddel', 1969, 15.25),
+	('30127', '1258', 'Shipping & Receiving', 'Gregory', 'Kuniz', 1988, 20.00),
+	('30128', '1259', 'Shipping & Receiving', 'Richard', 'Johnson', 1984, 19.75),
+	('30129', '1325', 'Manager', 'Jonathan', 'Smith', 1959, 49.10),
+	('30130', '1217', 'Stocker', 'Alice', 'Carrol', 1986, 16.05);
+
 CREATE TABLE inventory (
 	inventory_id varchar(5) not null primary key CHECK (LENGTH(inventory_id) = 5), 
 	store_id varchar(4) not null CHECK (LENGTH(store_id) = 4),  
@@ -585,5 +609,158 @@ GROUP BY s.store_id;
 | 1259     | 65135 Dodger Lane    | Funky Town | Arizona    | 59533 |               1 |
 | 1325     | 416 Oak Drive        | West Park  | Nevada     | 30126 |               2 |
 +----------+----------------------+------------+------------+-------+-----------------+
+
+------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
+- SET operations on tables 'employees' and 'former_employees'
+------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
+
+-- Show all current and former employees by first_name, last_name WITHOUT duplicates:
+
+mysql> SELECT first_name, last_name 
+FROM employees 
+UNION 
+SELECT first_name, last_name 
+FROM former_employees;
++------------+------------+
+| first_name | last_name  |
++------------+------------+
+| Mario      | Luigi      |
+| John       | Smith      |
+| Leopold    | Stotch     |
+| Stan       | Marsh      |
+| Eric       | Cartman    |
+| Scruffy    | Farnsworth |
+| Michael    | Mosley     |
+| Janice     | Wild       |
+| Richard    | Hedburg    |
+| Jonathan   | Smith      |
+| Kerry      | Potter     |
+| Sheila     | Brown      |
+| Joseph     | Smith      |
+| Michael    | Carpenter  |
+| Juan       | Lopez      |
+| Maria      | Perez      |
+| Mike       | Shields    |
+| Dat        | Phan       |
+| Penelope   | Marley     |
+| Leonard    | Newton     |
+| Isaac      | Fuentes    |
+| Harry      | Armstrong  |
+| Colby      | Lewis      |
+| Jeffery    | Jefferson  |
+| Rachel     | Mathews    |
+| Juan       | Donalds    |
+| Markus     | Black      |
+| Jose       | Lopez      |
+| John       | White      |
+| Veronica   | Smith      |
+| Alice      | Armstrong  |
+| Lewis      | Nabokov    |
+| Joseph     | West       |
+| Victoria   | Johnson    |
+| Ella       | Carrols    |
+| Ava        | Liddel     |
+| Zachary    | Moretz     |
+| Gregory    | Kuniz      |
+| Selina     | Sutherland |
+| Tiffany    | Carpenter  |
+| Joseph     | Navarro    |
+| Marcus     | Jackson    |
+| Jarod      | Marklar    |
+| Richard    | McDonald   |
+| Richard    | Johnson    |
+| Alice      | Carrol     |
++------------+------------+
+
+------------------------------------------------------------------------------------
+
+-- Show all employees current and former
+-- (Show 'current' and 'former' employees as a new column for the following)
+
+mysql> SELECT 'current' AS employee_status, first_name, last_name 
+FROM employees 
+UNION ALL 
+SELECT 'former' AS employee_status, first_name, last_name 
+FROM former_employees;
++-----------------+------------+------------+
+| employee_status | first_name | last_name  |
++-----------------+------------+------------+
+| current         | Mario      | Luigi      |
+| current         | John       | Smith      |
+| current         | Leopold    | Stotch     |
+| current         | Stan       | Marsh      |
+| current         | Eric       | Cartman    |
+| current         | Scruffy    | Farnsworth |
+| current         | Michael    | Mosley     |
+| current         | Janice     | Wild       |
+| current         | Richard    | Hedburg    |
+| current         | Jonathan   | Smith      |
+| current         | Kerry      | Potter     |
+| current         | Sheila     | Brown      |
+| current         | Joseph     | Smith      |
+| current         | Michael    | Carpenter  |
+| current         | Juan       | Lopez      |
+| current         | Maria      | Perez      |
+| current         | Mike       | Shields    |
+| current         | Dat        | Phan       |
+| current         | Penelope   | Marley     |
+| current         | Leonard    | Newton     |
+| current         | Isaac      | Fuentes    |
+| current         | Harry      | Armstrong  |
+| current         | Colby      | Lewis      |
+| current         | Jeffery    | Jefferson  |
+| current         | Rachel     | Mathews    |
+| current         | Juan       | Donalds    |
+| current         | Markus     | Black      |
+| current         | Jose       | Lopez      |
+| current         | John       | White      |
+| current         | Veronica   | Smith      |
+| current         | Alice      | Armstrong  |
+| current         | Lewis      | Nabokov    |
+| current         | Joseph     | West       |
+| current         | Victoria   | Johnson    |
+| current         | Ella       | Carrols    |
+| current         | Ava        | Liddel     |
+| current         | Zachary    | Moretz     |
+| current         | Gregory    | Kuniz      |
+| current         | Selina     | Sutherland |
+| current         | Tiffany    | Carpenter  |
+| former          | Mario      | Luigi      |
+| former          | Joseph     | Navarro    |
+| former          | Michael    | Mosley     |
+| former          | Marcus     | Jackson    |
+| former          | Jarod      | Marklar    |
+| former          | Richard    | McDonald   |
+| former          | Ava        | Liddel     |
+| former          | Gregory    | Kuniz      |
+| former          | Richard    | Johnson    |
+| former          | Jonathan   | Smith      |
+| former          | Alice      | Carrol     |
++-----------------+------------+------------+
+
+
+------------------------------------------------------------------------------------
+
+-- Show only duplicate employee names by first_name, last_name
+
+mysql> SELECT first_name, last_name 
+FROM employees 
+INTERSECT 
+SELECT first_name, last_name
+FROM former_employees;
++------------+-----------+
+| first_name | last_name |
++------------+-----------+
+| Mario      | Luigi     |
+| Michael    | Mosley    |
+| Jonathan   | Smith     |
+| Ava        | Liddel    |
+| Gregory    | Kuniz     |
++------------+-----------+
+
+------------------------------------------------------------------------------------
+
 
 */
