@@ -1,0 +1,828 @@
+[SQL Row-Level Functions] [Part 2]
+
+---------------------------------------
+
+[Date & Time Functions]
+
+Date:
+yyyy-mm-dd
+
+Time:
+hh:mm:ss
+
+Timestamp (Datetime2 in SQL Server):
+yyyy-mm-dd hh:mm:ss
+
+(For Sample Purposes):
+
+SELECT orderdate, shipdate, creationtime FROM orders LIMIT 5;
++------------+------------+---------------------+
+| orderdate  | shipdate   | creationtime        |
++------------+------------+---------------------+
+| 2025-01-01 | 2025-01-05 | 2025-01-01 12:34:56 |
+| 2025-01-05 | 2025-01-10 | 2025-01-05 23:22:04 |
+| 2025-01-10 | 2025-01-25 | 2025-01-10 18:24:08 |
+| 2025-01-20 | 2025-01-25 | 2025-01-20 05:50:33 |
+| 2025-02-01 | 2025-02-05 | 2025-02-01 14:02:41 |
++------------+------------+---------------------+
+
+--------------------------------------------------------
+
+Sources for Dates:
+
+Date Value Column
+Hardcoded Date String
+GETDATE() Function (For SQL Server, use NOW() or CURRENT_TIMESTAMP() for MySQL)
+
+Examples:
+
+SELECT orderdate AS DateColumn, '2025-08-20' AS HardCoded, NOW() AS DateFunction 
+FROM orders 
+LIMIT 3;
++------------+------------+---------------------+
+| DateColumn | HardCoded  | DateFunction        |
++------------+------------+---------------------+
+| 2025-01-01 | 2025-08-20 | 2025-09-03 12:46:14 |
+| 2025-01-05 | 2025-08-20 | 2025-09-03 12:46:14 |
+| 2025-01-10 | 2025-08-20 | 2025-09-03 12:46:14 |
++------------+------------+---------------------+
+
+--------------------------------------------------------
+------------------------
+Date & Time Functions
+------------------------
+
+Extract parts of dates.
+Change date format.
+Do date calculations.
+Validate date (Check if real) (Boolean)
+
+------------------------
+----------------
+Part Extraction
+----------------
+
+----------------
+
+DAY
+
+MONTH
+
+YEAR
+
+Example:
+
+ SELECT orderdate AS DateColumn, DAY(orderdate), MONTH(orderdate), YEAR(orderdate) 
+ FROM orders 
+ LIMIT 3;
++------------+----------------+------------------+-----------------+
+| DateColumn | DAY(orderdate) | MONTH(orderdate) | YEAR(orderdate) |
++------------+----------------+------------------+-----------------+
+| 2025-01-01 |              1 |                1 |            2025 |
+| 2025-01-05 |              5 |                1 |            2025 |
+| 2025-01-10 |             10 |                1 |            2025 |
++------------+----------------+------------------+-----------------+
+
+----------------
+
+DATEPART (Use EXTRACT(unit FROM Date) in MySQL)
+
+Example (SQL Server):
+DATEPART(part, date)
+
+part: month, mm, week, etc.
+
+Example:
+
+SELECT EXTRACT(week FROM orderdate) AS Week, EXTRACT(quarter FROM orderdate) AS Quarter 
+FROM orders 
+LIMIT 3;
++------+---------+
+| Week | Quarter |
++------+---------+
+|    0 |       1 |
+|    1 |       1 |
+|    1 |       1 |
++------+---------+
+
+----------------
+
+DATENAME (DAYNAME, MONTHNAME for MySQL)
+If grouping sales by month, looks much nicer given names such as January, etc.
+
+Example:
+
+SELECT DAYNAME(orderdate) AS day, MONTHNAME(orderdate) AS month FROM orders LIMIT 3;
++-----------+---------+
+| day       | month   |
++-----------+---------+
+| Wednesday | January |
+| Sunday    | January |
+| Friday    | January |
++-----------+---------+
+
+----------------
+
+DATETRUNC
+Truncates the date to a specific part.
+
+DATETRUNC(part, date)
+
+Example:
+
+
+!!!!!!!!!!!!!!!!!
+Note about MySQL
+!!!!!!!!!!!!!!!!!
+
+AI Overview
+MySQL does not have a direct equivalent to the DATE_TRUNC() function found in other 
+SQL dialects like PostgreSQL or SQL Server. However, you can achieve similar 
+functionality using a combination of MySQL's date and time functions, primarily 
+DATE_FORMAT() and DATE().
+
+Here's how to emulate DATE_TRUNC() for various time units in MySQL:
+
+------------------------------------------------------------------
+
+1. Truncate to Day (Remove Time Component):
+Use the DATE() function to extract only the date part from a DATETIME or TIMESTAMP
+column.
+
+Code
+
+SELECT DATE(your_datetime_column) FROM your_table;
+
+------------------------------------------------------------------
+
+2. Truncate to Month:
+Use DATE_FORMAT() to format the date to the first day of the month. 
+
+Code
+
+SELECT DATE_FORMAT(your_datetime_column, '%Y-%m-01') FROM your_table;
+
+Example:
+
+SELECT DATE_FORMAT(orderdate, '%Y-%m-01') FROM orders LIMIT 3;
++------------------------------------+
+| DATE_FORMAT(orderdate, '%Y-%m-01') |
++------------------------------------+
+| 2025-01-01                         |
+| 2025-01-01                         |
+| 2025-01-01                         |
++------------------------------------+
+
+------------------------------------------------------------------
+
+3. Truncate to Year:
+Use DATE_FORMAT() to format the date to the first day of the year.
+
+Code
+
+SELECT DATE_FORMAT(your_datetime_column, '%Y-01-01') FROM your_table;
+
+Example:
+
+SELECT DATE_FORMAT(orderdate, '%Y-01-01') FROM orders LIMIT 3;
++------------------------------------+
+| DATE_FORMAT(orderdate, '%Y-01-01') |
++------------------------------------+
+| 2025-01-01                         |
+| 2025-01-01                         |
+| 2025-01-01                         |
++------------------------------------+
+
+------------------------------------------------------------------
+
+4. Truncate to Hour/Minute/Second:
+Use DATE_FORMAT() with the appropriate format specifiers to include only the desired 
+precision. For example, to truncate to the hour:
+
+Code
+
+SELECT DATE_FORMAT(your_datetime_column, '%Y-%m-%d %H:00:00') FROM your_table;
+
+Example:
+
+SELECT DATE_FORMAT(orderdate, '%Y-%m-%d %H:00:00') FROM orders LIMIT 3;
++---------------------------------------------+
+| DATE_FORMAT(orderdate, '%Y-%m-%d %H:00:00') |
++---------------------------------------------+
+| 2025-01-01 00:00:00                         |
+| 2025-01-05 00:00:00                         |
+| 2025-01-10 00:00:00                         |
++---------------------------------------------+
+
+----------------------------------------------------------------------------
+
+In summary: While MySQL lacks a single DATE_TRUNC() function, the DATE() and 
+DATE_FORMAT() functions provide the necessary tools to achieve the same date 
+truncation effects by manipulating the date and time format.
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Can count orders given creation time, but if no truncate, will likely only get 1 per count.
+Truncate sets of dates, get better count within certain Dates.
+
+Example:
+
+SELECT COUNT(*) AS OrderCounts, DATE_FORMAT(orderdate, '%Y-01-01') AS TruncOrderDate 
+FROM orders 
+GROUP BY TruncOrderDate;
++-------------+----------------+
+| OrderCounts | TruncOrderDate |
++-------------+----------------+
+|          10 | 2025-01-01     |
++-------------+----------------+
+
+----------------
+
+EOMONTH (LAST_DAY() In MySQL)
+Returns the last day of a month.
+
+Example:
+
+SELECT LAST_DAY(orderdate) FROM orders LIMIT 3;
++---------------------+
+| LAST_DAY(orderdate) |
++---------------------+
+| 2025-01-31          |
+| 2025-01-31          |
+| 2025-01-31          |
++---------------------+
+
+Note:
+Can use TRUNCATE to get the first day of the month.
+
+----------------------------------
+
+Use Cases:
+
+Doing data aggregations and reporting:
+	Sales by year
+	Sales by month
+	etc.
+
+Example:
+
+SELECT YEAR(orderdate), COUNT(*) FROM orders GROUP BY YEAR(orderdate);
++-----------------+----------+
+| YEAR(orderdate) | COUNT(*) |
++-----------------+----------+
+|            2025 |       10 |
++-----------------+----------+
+
+Filtering:
+	
+SELECT orderid, productid, customerid, salespersonid, orderdate 
+FROM orders 
+WHERE MONTH(orderdate) = 2 
+LIMIT 10;
++---------+-----------+------------+---------------+------------+
+| orderid | productid | customerid | salespersonid | orderdate  |
++---------+-----------+------------+---------------+------------+
+|       5 |       104 |          2 |             5 | 2025-02-01 |
+|       6 |       104 |          3 |             5 | 2025-02-05 |
+|       7 |       102 |          1 |             1 | 2025-02-15 |
+|       8 |       101 |          4 |             3 | 2025-02-18 |
++---------+-----------+------------+---------------+------------+
+
+!!!!!!!!!!!!!!!!!!!!!!
+!!! Important Note !!!
+!!!!!!!!!!!!!!!!!!!!!!
+
+Filtering data using an integer is faster than using a string!
+
+!!!!!!!!!!!!!!!!!!!!!!
+
+-----------------------------------------
+Date Extraction Function Outputs:
+
+			   FUNCTION -> 	Data Type
+---------------------------------------							
+DAY MONTH YEAR DATEPART ->	INT
+			   DATENAME ->	String
+			  DATETRUNC ->	DATETIME
+			    EOMONTH ->	DATE
+
+-----------------------------------------
+
+Which part do I want to extract?
+
+Day, Month?
+	Numeric?
+		DAY() MONTH()
+	Full Name?
+		DATENAME()
+
+Year?
+	YEAR()
+
+Other Parts?
+	DATEPART()
+
+
+-----------------------------------------
+
+----------------
+----------------
+Format & Casting
+----------------
+
+----------------
+
+FORMAT (DATE_FORMAT in MySQL)
+
+Date Format specifiers:
+
+Case sensitive!
+ISO 8601: yyyy-MM-dd HH:mm:ss (SQL uses this)
+USA Standard: MM-dd-yyyy
+European Standard: dd-MM-yyyy
+
+MM/dd/yyyy 01/01/25
+MMM yyyy Jan 2025
+
+In SQL Server FORMAT:
+FORMAT(date_value, format [, culture])
+Where culture can be 'ja-JP', 'fr-FR', etc. (Default 'en-US')
+
+Example:
+
+!!! MySQL !!!
+%M is for named month
+%m is for month as number
+
+SELECT DATE_FORMAT(orderdate, '%m/%d/%y') FROM orders LIMIT 3;
++------------------------------------+
+| DATE_FORMAT(orderdate, '%m/%d/%y') |
++------------------------------------+
+| 01/01/25                           |
+| 01/05/25                           |
+| 01/10/25                           |
++------------------------------------+
+
+%D is for the day, like '1st':
+
+SELECT DATE_FORMAT(orderdate, '%M %D, %y') FROM orders LIMIT 3;
++-------------------------------------+
+| DATE_FORMAT(orderdate, '%M %D, %y') |
++-------------------------------------+
+| January 1st, 25                     |
+| January 5th, 25                     |
+| January 10th, 25                    |
++-------------------------------------+
+
+%W is for the named weekday:
+
+SELECT DATE_FORMAT(orderdate, '%W, %M %D, %y') FROM orders LIMIT 3;
++-----------------------------------------+
+| DATE_FORMAT(orderdate, '%W, %M %D, %y') |
++-----------------------------------------+
+| Wednesday, January 1st, 25              |
+| Sunday, January 5th, 25                 |
+| Friday, January 10th, 25                |
++-----------------------------------------+
+
+Format time as well:
+
+SELECT DATE_FORMAT(creationtime, '%d-%b-%Y %h:%i %p') FROM orders LIMIT 3;
++------------------------------------------------+
+| DATE_FORMAT(creationtime, '%d-%b-%Y %h:%i %p') |
++------------------------------------------------+
+| 01-Jan-2025 12:34 PM                           |
+| 05-Jan-2025 11:22 PM                           |
+| 10-Jan-2025 06:24 PM                           |
++------------------------------------------------+
+
+Abbreviated weekday and month names:
+
+SELECT DATE_FORMAT(orderdate, '%a, %b %D, %Y') FROM orders LIMIT 3;
++-----------------------------------------+
+| DATE_FORMAT(orderdate, '%a, %b %D, %Y') |
++-----------------------------------------+
+| Wed, Jan 1st, 2025                      |
+| Sun, Jan 5th, 2025                      |
+| Fri, Jan 10th, 2025                     |
++-----------------------------------------+
+
+SELECT DATE_FORMAT(creationtime, 'Day %a %b %y %h:%i:%s %p') FROM orders LIMIT 3;
++-------------------------------------------------------+
+| DATE_FORMAT(creationtime, 'Day %a %b %y %h:%i:%s %p') |
++-------------------------------------------------------+
+| Day Wed Jan 25 12:34:56 PM                            |
+| Day Sun Jan 25 11:22:04 PM                            |
+| Day Fri Jan 25 06:24:08 PM                            |
++-------------------------------------------------------+
+
+Complete list of specifiers:
+
+Specifier 	Description
+%a 	Abbreviated weekday name (Sun..Sat)
+%b 	Abbreviated month name (Jan..Dec)
+%c 	Month, numeric (0..12)
+%D 	Day of the month with English suffix (0th, 1st, 2nd, 3rd, )
+%d 	Day of the month, numeric (00..31)
+%e 	Day of the month, numeric (0..31)
+%f 	Microseconds (000000..999999)
+%H 	Hour (00..23)
+%h 	Hour (01..12)
+%I 	Hour (01..12)
+%i 	Minutes, numeric (00..59)
+%j 	Day of year (001..366)
+%k 	Hour (0..23)
+%l 	Hour (1..12)
+%M 	Month name (January..December)
+%m 	Month, numeric (00..12)
+%p 	AM or PM
+%r 	Time, 12-hour (hh:mm:ss followed by AM or PM)
+%S 	Seconds (00..59)
+%s 	Seconds (00..59)
+%T 	Time, 24-hour (hh:mm:ss)
+%U 	Week (00..53), where Sunday is the first day of the week; WEEK() mode 0
+%u 	Week (00..53), where Monday is the first day of the week; WEEK() mode 1
+%V 	Week (01..53), where Sunday is the first day of the week; WEEK() mode 2; used with %X
+%v 	Week (01..53), where Monday is the first day of the week; WEEK() mode 3; used with %x
+%W 	Weekday name (Sunday..Saturday)
+%w 	Day of the week (0=Sunday..6=Saturday)
+%X 	Year for the week where Sunday is the first day of the week, numeric, four digits; used with %V
+%x 	Year for the week, where Monday is the first day of the week, numeric, four digits; used with %v
+%Y 	Year, numeric, four digits
+%y 	Year, numeric (two digits)
+%% 	A literal % character
+%x 	x, for any "x" not listed above
+
+--------------
+
+Use Cases:
+
+Format dates for aggregations:
+
+SELECT DATE_FORMAT(creationtime, '%b') AS Month, COUNT(*) AS Number_Of_Orders 
+FROM orders 
+GROUP BY Month;
+
++-------+------------------+
+| Month | Number_Of_Orders |
++-------+------------------+
+| Jan   |                4 |
+| Feb   |                4 |
+| Mar   |                2 |
++-------+------------------+
+
+Can end up getting different formats from different sources, so need to format incoming data
+before putting it into the main database.
+
+
+
+----------------
+
+CONVERT
+Converts a value to a different data type.
+Style
+6 -> 01 Jan 25
+112 -> 20250820
+
+Note: CONVERT(data_type, value) in SQL Server,
+CONVERT(value, data_type) in MySQL
+
+Example:
+
+SELECT CONVERT(creationtime, CHAR) FROM orders LIMIT 3;
++-----------------------------+
+| CONVERT(creationtime, CHAR) |
++-----------------------------+
+| 2025-01-01 12:34:56         |
+| 2025-01-05 23:22:04         |
+| 2025-01-10 18:24:08         |
++-----------------------------+
+
+Convert to utf8:
+
+SELECT CONVERT(creationtime USING utf8mb4) FROM orders LIMIT 3;
++-------------------------------------+
+| CONVERT(creationtime USING utf8mb4) |
++-------------------------------------+
+| 2025-01-01 12:34:56                 |
+| 2025-01-05 23:22:04                 |
+| 2025-01-10 18:24:08                 |
++-------------------------------------+
+
+Convert string to INT to String:
+
+SELECT CONVERT(555, CHAR);
++--------------------+
+| CONVERT(555, CHAR) |
++--------------------+
+| 555                |
++--------------------+
+
+!!! NOTE !!!
+
+If MySQL puts out a warning on a query, immedietally use 'show warnings;' to see 
+the warning message.
+
+!!!!!!!!!!!!
+
+----------------
+
+CAST
+Changes data type from one to another,
+example String to Number, Date to String, String to Date
+
+
+The MySQL CAST() function is used to explicitly convert a value from one data 
+type to another. It is a standard SQL function that provides a way to enforce
+data type conversions within your queries.
+
+Example:
+
+SELECT CAST(creationtime AS CHAR) FROM orders LIMIT 3;
++----------------------------+
+| CAST(creationtime AS CHAR) |
++----------------------------+
+| 2025-01-01 12:34:56        |
+| 2025-01-05 23:22:04        |
+| 2025-01-10 18:24:08        |
++----------------------------+
+
+
+MySQL supports casting to a variety of data types, including:
+
+    BINARY
+    CHAR
+    DATE
+    DATETIME
+    TIME
+    DECIMAL
+    SIGNED (for signed integers)
+    UNSIGNED (for unsigned integers)
+
+
+Example after using CAST on made up date:
+
+SELECT DATEDIFF(orderdate, CAST('1999-01-05' AS DATE)) AS Days_Since_First_Order 
+FROM orders LIMIT 3;
++------------------------+
+| Days_Since_First_Order |
++------------------------+
+|                   9493 |
+|                   9497 |
+|                   9502 |
++------------------------+
+
+Still works without cast...:
+
+SELECT DATEDIFF(orderdate, '1999-01-05') AS Days_Since_First_Order 
+FROM orders LIMIT 3;
++------------------------+
+| Days_Since_First_Order |
++------------------------+
+|                   9493 |
+|                   9497 |
+|                   9502 |
++------------------------+
+
+----------------------------
+
+Comparison:		CASTING 					FORMATING
+
+CAST			Any type to any type		X No Formating
+
+CONVERT			Any type to any type		Formats only Date & Time
+
+FORMAT			Any type to only String		Formats Date & Time, Numbers
+
+
+----------------
+----------------
+Calculations
+----------------
+
+----------------
+
+DATEADD
+
+DATE_ADD in MySQL.
+
+Example:
+
+SELECT DATE_ADD('2005-01-01', INTERVAL 5 DAY);
++----------------------------------------+
+| DATE_ADD('2005-01-01', INTERVAL 5 DAY) |
++----------------------------------------+
+| 2005-01-06                             |
++----------------------------------------+
+
+SELECT DATE_ADD('2005-01-01', INTERVAL 9 MONTH);
++------------------------------------------+
+| DATE_ADD('2005-01-01', INTERVAL 9 MONTH) |
++------------------------------------------+
+| 2005-10-01                               |
++------------------------------------------+
+
+SELECT DATE_ADD('2005-01-01', INTERVAL 20 YEAR);
++------------------------------------------+
+| DATE_ADD('2005-01-01', INTERVAL 20 YEAR) |
++------------------------------------------+
+| 2025-01-01                               |
++------------------------------------------+
+
+With time, INTERVAL 3 HOUR, etc.
+
+Use - to subtract values:
+
+SELECT DATE_ADD('2005-01-05', INTERVAL -4 DAY);
++-----------------------------------------+
+| DATE_ADD('2005-01-05', INTERVAL -4 DAY) |
++-----------------------------------------+
+| 2005-01-01                              |
++-----------------------------------------+
+
+With all 3:
+
+SELECT DATE_ADD(DATE_ADD(DATE_ADD('2005-01-01', INTERVAL 19 YEAR), 
+INTERVAL 9 MONTH), 
+INTERVAL 24 DAY) AS NewDate;
++------------+
+| NewDate    |
++------------+
+| 2024-10-25 |
++------------+
+
+
+----------------
+
+DATEDIFF
+
+Example:
+
+SELECT DATEDIFF('1999-01-10', '1999-01-05');
++--------------------------------------+
+| DATEDIFF('1999-01-10', '1999-01-05') |
++--------------------------------------+
+|                                    5 |
++--------------------------------------+
+
+Returns number of days between, negative if the 2nd argument is later than the 1st.
+Ignores time components of DATE value.
+
+Better Example:
+
+SELECT DATEDIFF(shipdate, orderdate) AS ShipDays, orderdate, shipdate 
+FROM orders 
+LIMIT 3;
++----------+------------+------------+
+| ShipDays | orderdate  | shipdate   |
++----------+------------+------------+
+|        4 | 2025-01-01 | 2025-01-05 |
+|        5 | 2025-01-05 | 2025-01-10 |
+|       15 | 2025-01-10 | 2025-01-25 |
++----------+------------+------------+
+
+Note:
+Use NOW() with DATEDIFF to find number of days since some other Date.
+
+
+For a more precise calculation of the difference in years, MySQL's 
+TIMESTAMPDIFF() function is recommended. This function directly calculates 
+the difference between two datetime expressions in a specified unit, 
+including years.
+
+Example Code
+
+SELECT TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) AS age_in_years;
+
+Example:
+
+SELECT firstname, lastname, TIMESTAMPDIFF(YEAR, birthdate, NOW()) AS Years_Old FROM employees ORDER BY TIMESTAMPDIFF(YEAR, birthdate, NOW()) 
++-----------+----------+-----------+
+| firstname | lastname | Years_Old |
++-----------+----------+-----------+
+| Kevin     | Brown    |        52 |
+| Michael   | Ray      |        48 |
+| Carol     | Baker    |        43 |
+| Mary      | NULL     |        39 |
+| Frank     | Lee      |        36 |
++-----------+----------+-----------+
+
+----------------
+----------------
+Validation
+----------------
+
+----------------
+
+ISDATE
+Checks if a value is a  valid date
+
+!!!!!!!!!!!!!!!!!!!!!!! MySQL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+MySQL does not have a direct equivalent to SQL Server's ISDATE() function, 
+which checks if an expression is a valid date. However, you can achieve similar 
+functionality in MySQL using the STR_TO_DATE() function or by attempting a CAST() 
+to a date type.
+
+1. Using STR_TO_DATE():
+
+The STR_TO_DATE() function attempts to parse a string into a date based on a 
+specified format. If the string does not conform to the format or represents 
+an invalid date (e.g., February 30th), STR_TO_DATE() will return NULL. You can 
+then check for this NULL value.
+
+SELECT STR_TO_DATE('2025-02-30', '%Y-%m-%d') IS NOT NULL AS IsValidDate;
+-- This will return 0 (false) because '2025-02-30' is an invalid date.
+
+Example:
+
+SELECT STR_TO_DATE('2025-02-30', '%Y-%m-%d') IS NOT NULL AS IsValidDate;
++-------------+
+| IsValidDate |
++-------------+
+|           0 |
++-------------+
+
+SELECT STR_TO_DATE('2025-09-04', '%Y-%m-%d') IS NOT NULL AS IsValidDate;
+-- This will return 1 (true) because '2025-09-04' is a valid date.
+
+Example:
+
+SELECT STR_TO_DATE('2025-09-04', '%Y-%m-%d') IS NOT NULL AS IsValidDate;
++-------------+
+| IsValidDate |
++-------------+
+|           1 |
++-------------+
+
+-----------------------------------
+
+Can CAST only if Valid Date from ISDATE:
+
+Error:
+
+SELECT 
+	CAST(OrderDate AS DATE) AS OrderDate,
+FROM (
+	SELECT '2025-08-20' AS OrderDate UNION
+	SELECT '2025-08-21' UNION
+	SELECT '2025-08-23' UNION
+	SELECT '2025-08'
+)
+
+SELECT 
+	OrderDate,
+	ISDATE(OrderDate),
+	CASE WHEN ISDATE(OrderDate) = 1 THEN CAST(OrderDate AS DATE)
+	END NewOrderDate
+FROM (
+	SELECT '2025-08-20' AS OrderDate UNION
+	SELECT '2025-08-21' UNION
+	SELECT '2025-08-23' UNION
+	SELECT '2025-08'
+)
+
+MySQL Example:
+
+Derp, doesn't seem to work the same on MySQL, with the FROM (SELECT ... UNION ... Blah)
+
+Fixed:
+
+WITH derp AS ( 
+	SELECT '2025-08-20' AS OrderDate 
+	UNION 
+	SELECT '2025-08-21' 
+	UNION 
+	SELECT '2025-08-23' 
+	UNION 
+	SELECT '2025-08' 
+) 
+SELECT CAST(OrderDate AS DATE) AS OrderDate 
+FROM derp;
++------------+
+| OrderDate  |
++------------+
+| 2025-08-20 |
+| 2025-08-21 |
+| 2025-08-23 |
+| NULL       |
++------------+
+
+WITH derp AS ( 
+	SELECT '2025-08-20' AS OrderDate 
+	UNION 
+	SELECT '2025-08-21' 
+	UNION 
+	SELECT '2025-08-23' 
+	UNION 
+	SELECT '2025-08' 
+) 
+SELECT 
+	OrderDate,
+	STR_TO_DATE(OrderDate, '%Y-%m-%d') IS NOT NULL AS True_Or_False,
+	CASE WHEN CAST(OrderDate AS DATE) IS NOT NULL THEN CAST(OrderDate AS DATE) ELSE 'Unknown'
+	END NewOrderDate
+FROM derp;
+
+Still gets warnings when it tries to convert, will revisit this again later.
+
+-------------------------------------------------

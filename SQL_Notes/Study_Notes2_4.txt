@@ -1,0 +1,273 @@
+[SQL Row-Level Functions]
+
+Data manipulation
+Analyze data
+Clean data
+Data transformation
+
+Functions can be used for these tasks.
+
+Input -> Function -> Output
+
+------
+Single Row Functions, IO 1 Value
+
+Manipulate and prepare for Multi-Row
+
+String
+Numeric
+Date & Time
+NULL
+
+------
+Multi-Row, Input many values, output 1 values
+
+Aggregate
+Window
+
+-------
+
+Functions can be nested:
+
+LOWER(LEFT(StringColumn, 2))
+
+---------------------------------------
+
+[String Functions]
+
+------------------
+------------------
+Manipulation:
+
+------------------
+
+CONCAT
+Concatenate 2+ strings
+
+Example:
+
+SELECT CONCAT(firstname, ' ', lastname) AS Name FROM employees LIMIT 1;
++-----------+
+| Name      |
++-----------+
+| Frank Lee |
++-----------+
+
+------------------
+
+UPPER
+Convert all characters in string to uppercase
+
+Example:
+
+SELECT UPPER(CONCAT(firstname, ' ', lastname)) AS Name FROM employees LIMIT 1;
++-----------+
+| Name      |
++-----------+
+| FRANK LEE |
++-----------+
+
+------------------
+
+LOWER
+Convert all characters in string to lowercase
+
+Example:
+
+SELECT LOWER(CONCAT(firstname, ' ', lastname)) AS Name FROM employees LIMIT 1;
++-----------+
+| Name      |
++-----------+
+| frank lee |
++-----------+
+
+------------------
+
+Combined Example:
+
+SELECT CONCAT(UPPER(firstname), ' ', LOWER(lastname)) AS Name FROM employees LIMIT 1;
++-----------+
+| Name      |
++-----------+
+| FRANK lee |
++-----------+
+
+------------------
+
+TRIM
+Remove leading and trailing spaces in string
+
+Example:
+
+SELECT CONCAT('   ', firstname, ' ', lastname, '    ') AS Name FROM employees LIMIT 1;
++------------------+
+| Name             |
++------------------+
+|    Frank Lee     |
++------------------+
+
+SELECT TRIM(CONCAT('   ', firstname, ' ', lastname, '    ')) AS Name FROM employees LIMIT 1;
++-----------+
+| Name      |
++-----------+
+| Frank Lee |
++-----------+
+
+In order to find first names that have white space in them:
+SELECT first_name FROM customers WHERE first_name != TRIM(first_name)
+
+If flag > 0, has white space
+LENGTH(first_name) - LENGTH(TRIM(first_name)) AS flag
+
+------------------
+
+REPLACE
+Replaces specific character with a new character
+
+Example:
+
+Remove char:
+SELECT birthdate, REPLACE(birthdate, '-', '') FROM employees LIMIT 1;
++------------+-----------------------------+
+| birthdate  | REPLACE(birthdate, '-', '') |
++------------+-----------------------------+
+| 1988-12-05 | 19881205                    |
++------------+-----------------------------+
+
+Replace char:
+SELECT birthdate, REPLACE(birthdate, '-', '/') FROM employees LIMIT 1;
++------------+------------------------------+
+| birthdate  | REPLACE(birthdate, '-', '/') |
++------------+------------------------------+
+| 1988-12-05 | 1988/12/05                   |
++------------+------------------------------+
+
+Replace substring:
+SELECT 'test.txt' AS old_filename, REPLACE('test.txt', '.txt', '.sql') AS new_filename;
++--------------+--------------+
+| old_filename | new_filename |
++--------------+--------------+
+| test.txt     | test.sql     |
++--------------+--------------+
+
+------------------
+------------------
+Calculation:
+
+------------------
+
+LENGTH
+Returns number of characters in value
+
+Example:
+SELECT firstname, LENGTH(firstname) AS char_count FROM employees LIMIT 1;
++-----------+------------+
+| firstname | char_count |
++-----------+------------+
+| Frank     |          5 |
++-----------+------------+
+
+------------------
+------------------
+String Extraction:
+
+------------------
+
+LEFT
+
+Example:
+SELECT firstname, LEFT(firstname, 2) AS left2 FROM employees LIMIT 1;
++-----------+-------+
+| firstname | left2 |
++-----------+-------+
+| Frank     | Fr    |
++-----------+-------+
+
+------------------
+
+RIGHT
+
+Example:
+SELECT firstname, RIGHT(firstname, 2) AS left2 FROM employees LIMIT 1;
++-----------+-------+
+| firstname | left2 |
++-----------+-------+
+| Frank     | nk    |
++-----------+-------+
+
+------------------
+
+SUBSTRING
+SUBSTRING(StringColumn, StartPos, Length)
+
+Example:
+
+No length? Everything from StartPos
+SELECT firstname, SUBSTRING(firstname, 3) AS sub FROM employees LIMIT 1;
++-----------+------+
+| firstname | sub  |
++-----------+------+
+| Frank     | ank  |
++-----------+------+
+
+SELECT firstname, SUBSTRING(firstname, 3, 2) AS sub FROM employees LIMIT 1;
++-----------+------+
+| firstname | sub  |
++-----------+------+
+| Frank     | an   |
++-----------+------+
+
+Remove all first chars:
+SELECT firstname, SUBSTRING(firstname, 2) AS sub FROM employees LIMIT 1;
++-----------+------+
+| firstname | sub  |
++-----------+------+
+| Frank     | rank |
++-----------+------+
+
+------------------
+
+---------------------------------------
+
+[Numeric Functions]
+
+------------------
+
+ROUND
+
+SELECT 3.516, ROUND(3.516, 2);
++-------+-----------------+
+| 3.516 | ROUND(3.516, 2) |
++-------+-----------------+
+| 3.516 |            3.52 |
++-------+-----------------+
+1 row in set (0.00 sec)
+
+SELECT 3.516, ROUND(3.516, 1);
++-------+-----------------+
+| 3.516 | ROUND(3.516, 1) |
++-------+-----------------+
+| 3.516 |             3.5 |
++-------+-----------------+
+1 row in set (0.01 sec)
+
+SELECT 3.516, ROUND(3.516, 0);
++-------+-----------------+
+| 3.516 | ROUND(3.516, 0) |
++-------+-----------------+
+| 3.516 |               4 |
++-------+-----------------+
+
+------------------
+
+ABS
+
+SELECT -22, ABS(-22);
++-----+----------+
+| -22 | ABS(-22) |
++-----+----------+
+| -22 |       22 |
++-----+----------+
+
+------------------
+
