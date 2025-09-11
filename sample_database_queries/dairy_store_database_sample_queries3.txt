@@ -1,0 +1,134 @@
+/*
+
+Database Design flaw:
+
+If a VIEW of say, the top selling items by their total (quantity * price) sales,
+currently the table 'prices' has to be JOINed to the table 'sales'.
+
+The problem is that this VIEW calculation would be going off of their price
+from the prices table. In the real world, these prices are subject to change at any given time.
+
+So, if they were changed in the prices table, this would change these values in the VIEW.
+To make it more realistic, the prices they were sold at should be stored in the sales table,
+so then the VIEW can be calculated off of those prices, not the ones in the prices table.
+
+Then, let's fix that:
+
+mysql> ALTER TABLE sales ADD purch_price float;
+Query OK, 0 rows affected (0.53 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> describe sales;
++-------------+------------+------+-----+---------+-------+
+| Field       | Type       | Null | Key | Default | Extra |
++-------------+------------+------+-----+---------+-------+
+| sales_id    | varchar(5) | NO   | PRI | NULL    |       |
+| store_id    | varchar(4) | NO   | MUL | NULL    |       |
+| item_id     | varchar(6) | NO   | MUL | NULL    |       |
+| emp_id      | varchar(5) | NO   | MUL | NULL    |       |
+| purch_date  | date       | NO   |     | NULL    |       |
+| quantity    | int        | NO   |     | NULL    |       |
+| purch_price | float      | YES  |     | NULL    |       |
++-------------+------------+------+-----+---------+-------+
+
+UPDATE sales SET purch_price = (SELECT price FROM prices WHERE prices.item_id = sales.item_id);
+Query OK, 40 rows affected (0.40 sec)
+Rows matched: 40  Changed: 40  Warnings: 0
+
+-- Now see the resulting table (First 10 rows only):
+
+mysql> SELECT * FROM sales LIMIT 10;
++----------+----------+---------+--------+------------+----------+-------------+
+| sales_id | store_id | item_id | emp_id | purch_date | quantity | purch_price |
++----------+----------+---------+--------+------------+----------+-------------+
+| 20000    | 1259     | 122679  | 30034  | 2021-06-07 |        2 |        4.45 |
+| 20001    | 1218     | 122679  | 30032  | 2022-03-25 |        6 |        4.45 |
+| 20002    | 1258     | 122699  | 30033  | 2021-08-19 |        4 |         6.1 |
+| 20003    | 1325     | 124565  | 30035  | 2021-09-26 |        2 |        6.05 |
+| 20004    | 1325     | 122685  | 30040  | 2021-06-29 |        6 |        4.45 |
+| 20005    | 1218     | 122693  | 30032  | 2021-07-15 |        5 |        5.78 |
+| 20006    | 1217     | 122699  | 30036  | 2022-01-29 |        3 |         6.1 |
+| 20007    | 1259     | 122687  | 30034  | 2020-10-13 |        6 |        6.74 |
+| 20008    | 1217     | 122689  | 30026  | 2021-01-27 |        5 |         6.5 |
+| 20009    | 1217     | 122685  | 30036  | 2020-06-13 |        6 |        4.45 |
++----------+----------+---------+--------+------------+----------+-------------+
+
+-- Now, has been bothering me that these prices in these tables need 'CONCAT('$', CAST(price AS DECIMAL(10, 2)))' 
+-- every time in order to show as an actual dollar price. Why CAST? Why not just make the column type DECIMAL(10, 2)?
+
+mysql> ALTER TABLE sales MODIFY COLUMN purch_price DECIMAL(10, 2);
+Query OK, 40 rows affected, 37 warnings (2.95 sec)
+Records: 40  Duplicates: 0  Warnings: 37
+
+--Gave warnings for most:
+
+mysql> show warnings;
++-------+------+---------------------------------------------------+
+| Level | Code | Message                                           |
++-------+------+---------------------------------------------------+
+| Note  | 1265 | Data truncated for column 'purch_price' at row 1  |
+...
+
+-- But everything looks fine, probably just lopped off the other digits on the float.
+
+mysql> SELECT * FROM sales LIMIT 10;
++----------+----------+---------+--------+------------+----------+-------------+
+| sales_id | store_id | item_id | emp_id | purch_date | quantity | purch_price |
++----------+----------+---------+--------+------------+----------+-------------+
+| 20000    | 1259     | 122679  | 30034  | 2021-06-07 |        2 |        4.45 |
+| 20001    | 1218     | 122679  | 30032  | 2022-03-25 |        6 |        4.45 |
+| 20002    | 1258     | 122699  | 30033  | 2021-08-19 |        4 |        6.10 |
+| 20003    | 1325     | 124565  | 30035  | 2021-09-26 |        2 |        6.05 |
+| 20004    | 1325     | 122685  | 30040  | 2021-06-29 |        6 |        4.45 |
+| 20005    | 1218     | 122693  | 30032  | 2021-07-15 |        5 |        5.78 |
+| 20006    | 1217     | 122699  | 30036  | 2022-01-29 |        3 |        6.10 |
+| 20007    | 1259     | 122687  | 30034  | 2020-10-13 |        6 |        6.74 |
+| 20008    | 1217     | 122689  | 30026  | 2021-01-27 |        5 |        6.50 |
+| 20009    | 1217     | 122685  | 30036  | 2020-06-13 |        6 |        4.45 |
++----------+----------+---------+--------+------------+----------+-------------+
+
+-- And for prices:
+
+mysql> ALTER TABLE prices MODIFY COLUMN price DECIMAL(10, 2);
+Query OK, 18 rows affected, 17 warnings (2.13 sec)
+Records: 18  Duplicates: 0  Warnings: 17
+
+mysql> SELECT * FROM prices;
++---------+-------------------------------+-------+
+| item_id | item_name                     | price |
++---------+-------------------------------+-------+
+| 122678  | vanilla yogurt                |  4.35 |
+| 122679  | peach yogurt                  |  4.45 |
+| 122685  | blueberry yogurt              |  4.45 |
+| 122686  | milk                          |  7.86 |
+| 122687  | salted butter                 |  6.74 |
+| 122689  | unsalted butter               |  6.50 |
+| 122693  | provolone cheese              |  5.78 |
+| 122697  | cheddar cheese                |  5.90 |
+| 122699  | mozarella cheese              |  6.10 |
+| 122710  | pepperjack cheese             |  6.12 |
+| 123456  | chocolate ice cream           |  8.90 |
+| 123457  | vanilla ice cream             |  8.80 |
+| 123468  | mint chocolate chip ice cream |  8.95 |
+| 123472  | neopolitan ice cream          |  8.95 |
+| 123480  | rainbow sherbert ice cream    |  8.95 |
+| 123484  | sour cream                    |  5.63 |
+| 123485  | cream cheese                  |  6.20 |
+| 124565  | cottage cheese                |  6.05 |
++---------+-------------------------------+-------+
+
+-- And just to prove CAST is no longer needed:
+
+mysql> SELECT item_id, item_name, CONCAT('$', price) AS price FROM prices LIMIT 5;
++---------+------------------+-------+
+| item_id | item_name        | price |
++---------+------------------+-------+
+| 122678  | vanilla yogurt   | $4.35 |
+| 122679  | peach yogurt     | $4.45 |
+| 122685  | blueberry yogurt | $4.45 |
+| 122686  | milk             | $7.86 |
+| 122687  | salted butter    | $6.74 |
++---------+------------------+-------+
+
+
+*/
