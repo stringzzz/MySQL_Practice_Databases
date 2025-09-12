@@ -1,0 +1,211 @@
+[CTAS And Temp Tables]
+
+Create/Insert
+
+1. Create: Define the structure of table.
+	CREATE empty table.
+
+2. Insert: Insert data into the table.
+	INSERT data into the new table.
+
+Create from scratch.
+
+CTAS (Create Table As Select)
+
+Create a new table based on the result of an SQL query.
+
+1. Execute query on table, use result to create new table.
+
+Create given existing table(s).
+
+--------------------
+
+In VIEWs, query of view is executed each time it is used, while CTAS query has already been executed.
+
+CTAS don't need to execute an extra query on original, source table every time it is used.
+
+So, CTAS perform faster than VIEWs.
+
+Problem: Modifying the original source tables modifies the results of the VIEW, but not the CTAS!
+
+VIEW: Fresh to order pizza.
+
+CTAS: Frozen, already made pizza.
+
+-------------------------------
+
+CTAS Syntax:
+
+CREATE TABLE Name AS (
+	SELECT ...
+	FROM ...
+	WHERE ...
+)
+
+Simple Example:
+
+CREATE TABLE Derp AS (
+	SELECT 
+		orderid, 
+		orderdate 
+	FROM orders 
+	WHERE MONTH(orderdate) = 1
+);
+Query OK, 4 rows affected (0.72 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+SELECT * FROM Derp;
++---------+------------+
+| orderid | orderdate  |
++---------+------------+
+|       1 | 2025-01-01 |
+|       2 | 2025-01-05 |
+|       3 | 2025-01-10 |
+|       4 | 2025-01-20 |
++---------+------------+
+
+----------------------------
+
+Use Cases:
+
+Use CTAS to take workload behind the scenes, then end users have faster experience.
+In comparison to VIEWs, where the workload can end up on the user end.
+
+Example:
+
+CREATE TABLE MonthlyOrders AS (
+	SELECT 
+		DATE_FORMAT(orderdate, '%M') AS OrderMonth, 
+		COUNT(orderid) AS TotalOrders
+	FROM orders 
+	GROUP BY DATE_FORMAT(orderdate, '%M')
+);
+Query OK, 3 rows affected (0.68 sec)
+Records: 3  Duplicates: 0  Warnings: 0
+
+SELECT * FROM MonthlyOrders;
++------------+-------------+
+| OrderMonth | TotalOrders |
++------------+-------------+
+| January    |           4 |
+| February   |           4 |
+| March      |           2 |
++------------+-------------+
+
+----------------------------
+
+Refresh CTAS:
+
+DROP Table and run CREATE TABLE again.
+
+----------------------------
+
+Use Case: Create a snapshot of data at a specific time
+
+---------------------------
+
+Use Case: Persisting the Data Marts of a DWH improves the speed of data retrieval
+compared to using views.
+
+Using VIEWS can end up slowing everything down.
+
+Use CTAS from Data Warehouse to Data Mart instead (still slow), but then speeds up the exchange
+between Data Mart and Reporting.
+
+----------------------------------------------
+
+Temporary Tables
+
+Stores intermediate results in temporary storage within the database during the session.
+The database will drop all temporary tables once the session ends.
+
+Temp Table query uses existing table, creates new table, but then this table is dropped automatically 
+after the session ends.
+
+User -> Query -> DB Engine -> Server: Disk: (Metadata) Catalog / (Table) TEMP
+Ending session removes catalog metadata and temp table.
+
+Can extract data from source DB, puts into temp table.
+Now, transformation can be done onto temp table.
+Results get put into DWH DB.
+Now, temp table no longer needed, can be dropped.
+
+This way, no need to combine transformation and extract step into one, slow process.
+
+Syntax (MySQL):
+
+CREATE TEMPORARY TABLE Name AS (
+	SELECT ...
+	FROM ...
+	WHERE ...
+)
+
+Example:
+
+CREATE TEMPORARY TABLE Derp2 AS (
+	SELECT 
+		orderid, 
+		orderdate 
+	FROM orders 
+	WHERE MONTH(orderdate) = 1
+);
+Query OK, 4 rows affected (0.01 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+SELECT * FROM Derp2;
++---------+------------+
+| orderid | orderdate  |
++---------+------------+
+|       1 | 2025-01-01 |
+|       2 | 2025-01-05 |
+|       3 | 2025-01-10 |
+|       4 | 2025-01-20 |
++---------+------------+
+
+(Drops after logging out of session)
+
+-- Do anything to table:
+
+DELETE FROM Derp2 WHERE DAY(orderdate) > 5;
+Query OK, 2 rows affected (0.00 sec)
+
+SELECT * FROM Derp2;
++---------+------------+
+| orderid | orderdate  |
++---------+------------+
+|       1 | 2025-01-01 |
+|       2 | 2025-01-05 |
++---------+------------+
+
+-- If you decide to make it more permanent:
+
+CREATE TABLE Derp3 AS (SELECT * FROM Derp2);
+Query OK, 2 rows affected (1.24 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+Tip:
+
+CTE can be used for intermediate result for one query, if deciding it is more important,
+put into CTAS. Not really much need for temp table in real usage.
+
+----------------------------------------------
+
+[Compare Advanced Techniques]
+
+				Subquery			CTE				Temp			CTAS		VIEW
+-------------------------------------------------------------------------------------------
+Storage:		Memory				Memory			Disk			Disk		No Storage
+
+Lifetime:		Temp				Temp			Temp			Perm		Perm
+
+When Delete:	Query				Query			Session			Drop		Drop
+
+Scope:			Single-Query		Single-Query	Multi			Multi		Multi
+
+Reusability:	1 place, 1 query	*place, 1 query	*query, 1 sess	*query		*query
+
+up2date:		Always				Always			Snapshot		Snapshot	Always
+
+
+* = Multi
+

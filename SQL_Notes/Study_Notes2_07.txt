@@ -1,0 +1,222 @@
+[CASE Statement]
+
+Evaluates a list of conditions and returns a value when the first condition is met.
+
+Syntax:
+
+CASE
+	WHEN condition1 THEN result1
+	WHEN condition2 THEN result2
+	...
+	ELSE default_result
+END
+
+Most important condition should go first, order matters.
+ELSE is optional.
+
+Example:
+
+SELECT sales, 
+CASE 
+	WHEN sales > 50 THEN 'High' 
+	WHEN sales > 30 THEN 'Mid' 
+	WHEN sales > 10 THEN 'Low' 
+	ELSE 'Very Low' 
+END AS sales_score 
+FROM orders;
++-------+-------------+
+| sales | sales_score |
++-------+-------------+
+|    10 | Very Low    |
+|    15 | Low         |
+|    20 | Low         |
+|    60 | High        |
+|    25 | Low         |
+|    50 | Mid         |
+|    30 | Low         |
+|    90 | High        |
+|    20 | Low         |
+|    60 | High        |
++-------+-------------+
+
+-------------------
+
+Use Cases:
+
+Main purpose is Data Transformation
+
+Derive new information
+
+- Create new Columns based on existing data -
+
+*Categorizing Data: Group the data into different categories based on certain conditions.
+
+WITH sales_score AS ( SELECT CASE 
+	WHEN sales > 50 THEN 'High' 
+	WHEN sales > 30 THEN 'Mid' 
+	WHEN sales > 10 THEN 'Low' 
+	ELSE 'Very Low' 
+END AS sales_score 
+FROM orders 
+) 
+SELECT sales_score, COUNT(sales_score) AS score_count 
+FROM sales_score 
+GROUP BY sales_score;
++-------------+-------------+
+| sales_score | score_count |
++-------------+-------------+
+| Very Low    |           1 |
+| Low         |           5 |
+| High        |           3 |
+| Mid         |           1 |
++-------------+-------------+
+
+WITH sales_score AS ( SELECT sales, CASE 
+	WHEN sales > 50 THEN 'High' 
+	WHEN sales > 30 THEN 'Mid' 
+	WHEN sales > 10 THEN 'Low' 
+	ELSE 'Very Low' 
+END AS sales_score 
+FROM orders 
+) 
+SELECT sales_score, COUNT(sales_score) AS score_count, SUM(sales) AS total_sales 
+FROM sales_score 
+GROUP BY sales_score;
++-------------+-------------+-------------+
+| sales_score | score_count | total_sales |
++-------------+-------------+-------------+
+| Very Low    |           1 |          10 |
+| Low         |           5 |         110 |
+| High        |           3 |         210 |
+| Mid         |           1 |          50 |
++-------------+-------------+-------------+
+
+--------------------------
+
+*Mapping: Transform the values from one form to another.
+
+SELECT firstname, lastname, gender, 
+CASE 
+	WHEN gender = 'M' THEN 'Male'
+	WHEN gender = 'F' THEN 'Female' 
+	ELSE 'Not Available' 
+END AS Full_Gender 
+FROM employees;
++-----------+----------+--------+-------------+
+| firstname | lastname | gender | Full_Gender |
++-----------+----------+--------+-------------+
+| Frank     | Lee      | M      | Male        |
+| Kevin     | Brown    | M      | Male        |
+| Mary      | NULL     | F      | Female      |
+| Michael   | Ray      | M      | Male        |
+| Carol     | Baker    | F      | Female      |
++-----------+----------+--------+-------------+
+
+---------------------------
+
+Often writing same thing, such as 'Country = ____'
+
+Can use this instead:
+
+CASE Country
+	WHEN 'Germany' THEN 'DE'
+	WHEN 'India' THEN 'IN'
+	...
+	ELSE 'n/a'
+END
+
+Example:
+
+SELECT firstname, lastname, gender, 
+CASE gender
+	WHEN 'M' THEN 'Male'
+	WHEN 'F' THEN 'Female' 
+	ELSE 'Not Available' 
+END AS Full_Gender 
+FROM employees;
++-----------+----------+--------+-------------+
+| firstname | lastname | gender | Full_Gender |
++-----------+----------+--------+-------------+
+| Frank     | Lee      | M      | Male        |
+| Kevin     | Brown    | M      | Male        |
+| Mary      | NULL     | F      | Female      |
+| Michael   | Ray      | M      | Male        |
+| Carol     | Baker    | F      | Female      |
++-----------+----------+--------+-------------+
+
+'Quick Form'.
+Cannot use if logic gets complicated. Might want to use Full Form at all times, to 
+avoid having to rewrite everything in the quick form if adding more logic.
+
+----------------------
+
+*Handling NULLS
+
+Replace NULLs with a specific value.
+
+(covered in previous section)
+
+----------------------
+
+*Conditional aggregation
+
+Apply aggregate functions only on subsets of data that fulfill certain conditions.
+
+WITH sales_score AS ( SELECT customerid, CASE 
+	WHEN sales > 30 THEN 1 
+	ELSE 0 
+END AS sales_score 
+FROM orders 
+) 
+SELECT sales_score.customerid, SUM(sales_score) AS sales_higher_than_30
+FROM sales_score
+GROUP BY sales_score.customerid;
++------------+----------------------+
+| customerid | sales_higher_than_30 |
++------------+----------------------+
+|          1 |                    1 |
+|          2 |                    0 |
+|          3 |                    2 |
+|          4 |                    1 |
++------------+----------------------+
+
+----------------------
+
+Rules:
+
+The data type of the results must be matching!
+(THEN/ELSE output must have same data type)
+
+CASE statement can be used anywhere in the query.
+
+When mapping CASE WHEN, need to know all possible values to write statements,
+ don't forget to add default ELSE value.
+
+--------------------------------------
+
+[Aggregate Functions]
+
+Accept multiple rows as input, output single value.
+
+Example:
+
+SELECT COUNT(*), SUM(sales), AVG(sales), MAX(sales), MIN(sales) FROM orders;
++----------+------------+------------+------------+------------+
+| COUNT(*) | SUM(sales) | AVG(sales) | MAX(sales) | MIN(sales) |
++----------+------------+------------+------------+------------+
+|       10 |        380 |    38.0000 |         90 |         10 |
++----------+------------+------------+------------+------------+
+
+GROUP BY breaks the list into parts based on column(s).
+
+Example:
+
+SELECT COUNT(*), SUM(score), AVG(score), MAX(score), MIN(score) FROM customers GROUP BY country;
++----------+------------+------------+------------+------------+
+| COUNT(*) | SUM(score) | AVG(score) | MAX(score) | MIN(score) |
++----------+------------+------------+------------+------------+
+|        2 |        850 |   425.0000 |        500 |        350 |
+|        3 |       1650 |   825.0000 |        900 |        750 |
++----------+------------+------------+------------+------------+
+
+--------------------------------------

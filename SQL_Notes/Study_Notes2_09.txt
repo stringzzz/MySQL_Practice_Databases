@@ -1,0 +1,809 @@
+-----------------------------
+[Window Functions]
+
+[Rank & Value]
+-----------------------------
+
+Rank:
+
+Integer-based Ranking: 
+	Discrete Values, start from 1, goes up.
+	Position of value in a list.
+	Top/Bottom N Analysis
+
+	Has:
+	ROW_NUMBER, RANK, DENSE_RANK, and NTILE
+
+Percentage-based Ranking:
+	Continuous Values, from 0 to 1, infinitely many values in between.
+	Distribution Analysis
+
+	Has:
+	CUME_DIST and PERCENT_RANK
+
+RANK() OVER (PARTITTION BY Column ORDER BY Column)
+
+^^^^^^		   ^^^^^^^^^^^^^^		^^^^^^^^^^^^
+Must be empty  Optional				Required
+^^^^^^
+(Unless NTILE, number)
+
+Frame clause not allowed.
+
+-----------------------------
+
+ROW_NUMBER
+	Assign a unique number to each in a window.
+	Doesn't handle ties, if rows have same value, doesn't have same rank.
+	No gaps in ranking.
+
+Example:
+
+SELECT 
+	sales, 
+	ROW_NUMBER() OVER (ORDER BY sales) AS RowNumber 
+FROM orders;
++-------+-----------+
+| sales | RowNumber |
++-------+-----------+
+|    10 |         1 |
+|    15 |         2 |
+|    20 |         3 |
+|    20 |         4 |
+|    25 |         5 |
+|    30 |         6 |
+|    50 |         7 |
+|    60 |         8 |
+|    60 |         9 |
+|    90 |        10 |
++-------+-----------+
+
+-- From highest to lowest:
+
+SELECT 
+	sales, 
+	ROW_NUMBER() OVER (ORDER BY sales DESC) AS RowNumber 
+FROM orders;
++-------+-----------+
+| sales | RowNumber |
++-------+-----------+
+|    90 |         1 |
+|    60 |         2 |
+|    60 |         3 |
+|    50 |         4 |
+|    30 |         5 |
+|    25 |         6 |
+|    20 |         7 |
+|    20 |         8 |
+|    15 |         9 |
+|    10 |        10 |
++-------+-----------+
+
+---------------------
+
+Use Cases:
+
+--Find the top highest sales for each product (Focus on best product):
+
+SELECT 
+	orderid, 
+	productid, 
+	sales, 
+	ROW_NUMBER() OVER (PARTITION BY productid ORDER BY sales DESC) AS RankByProduct 
+FROM orders;
++---------+-----------+-------+---------------+
+| orderid | productid | sales | RankByProduct |
++---------+-----------+-------+---------------+
+|       8 |       101 |    90 |             1 |
+|       3 |       101 |    20 |             2 |
+|       9 |       101 |    20 |             3 |
+|       1 |       101 |    10 |             4 |
+|      10 |       102 |    60 |             1 |
+|       7 |       102 |    30 |             2 |
+|       2 |       102 |    15 |             3 |
+|       6 |       104 |    50 |             1 |
+|       5 |       104 |    25 |             2 |
+|       4 |       105 |    60 |             1 |
++---------+-----------+-------+---------------+
+
+Need top:
+
+WITH RankByProduct AS (
+	SELECT 
+		orderid, 
+		productid, 
+		sales, 
+		ROW_NUMBER() OVER (PARTITION BY productid ORDER BY sales DESC) AS RankByProduct
+	FROM orders
+) SELECT * 
+	FROM RankByProduct 
+	WHERE RankByProduct = 1;
++---------+-----------+-------+---------------+
+| orderid | productid | sales | RankByProduct |
++---------+-----------+-------+---------------+
+|       8 |       101 |    90 |             1 |
+|      10 |       102 |    60 |             1 |
+|       6 |       104 |    50 |             1 |
+|       4 |       105 |    60 |             1 |
++---------+-----------+-------+---------------+
+
+-----------------
+
+-- Find the bottom-n performers:
+
+WITH RankCustomers AS (
+	SELECT 
+		customerid, 
+		SUM(sales) AS totalsales, 
+		ROW_NUMBER() OVER (ORDER BY SUM(sales)) AS RankCustomers 
+	FROM orders 
+	GROUP BY customerid
+) SELECT * 
+	FROM RankCustomers 
+	WHERE RankCustomers <= 2;
++------------+------------+---------------+
+| customerid | totalsales | RankCustomers |
++------------+------------+---------------+
+|          2 |         55 |             1 |
+|          4 |         90 |             2 |
++------------+------------+---------------+
+
+-----------------
+
+--Generate unique ids
+
+Assign unique IDs to the rows of the 'Orders Archive' table
+
+SELECT 
+	orderid, 
+	orderdate, 
+	ROW_NUMBER() OVER (ORDER BY orderid, orderdate) AS UniqueID 
+FROM orders_archive;
++---------+------------+----------+
+| orderid | orderdate  | UniqueID |
++---------+------------+----------+
+|       1 | 2024-04-01 |        1 |
+|       2 | 2024-04-05 |        2 |
+|       3 | 2024-04-10 |        3 |
+|       4 | 2024-04-20 |        4 |
+|       4 | 2024-04-20 |        5 |
+|       5 | 2024-05-01 |        6 |
+|       6 | 2024-05-05 |        7 |
+|       6 | 2024-05-05 |        8 |
+|       6 | 2024-05-05 |        9 |
+|       7 | 2024-06-15 |       10 |
++---------+------------+----------+
+
+Paginating: 
+	The process of breaking down a large data into smaller, more manageable chunks.
+	Improve importing and exporting data.
+
+-----------------
+
+--Identify duplicates:
+
+Identify duplicate rows in the table 'Orders Archive' (orders_archive) and return
+a clean result without any duplicates.
+
+WITH rn AS (
+	SELECT 
+		orderid, 
+		productid, 
+		customerid, 
+		shipaddress, 
+		billaddress, 
+		creationtime, 
+		ROW_NUMBER() OVER (PARTITION BY orderid ORDER BY creationtime DESC) AS rn 
+	FROM orders_archive
+) SELECT * 
+	FROM rn 
+	WHERE rn = 1;
++---------+-----------+------------+------------------+----------------+---------------------+----+
+| orderid | productid | customerid | shipaddress      | billaddress    | creationtime        | rn |
++---------+-----------+------------+------------------+----------------+---------------------+----+
+|       1 |       101 |          2 | 123 Main St      | 456 Billing St | 2024-04-01 12:34:56 |  1 |
+|       2 |       102 |          3 | 456 Elm St       | 789 Billing St | 2024-04-05 23:22:04 |  1 |
+|       3 |       101 |          1 | 789 Maple St     | 789 Maple St   | 2024-04-10 18:24:08 |  1 |
+|       4 |       105 |          1 | 987 Victory Lane |                | 2024-04-20 14:50:33 |  1 |
+|       5 |       104 |          2 | 345 Oak St       | 678 Pine St    | 2024-05-01 14:02:41 |  1 |
+|       6 |       101 |          3 | 543 Belmont Rd.  | 3768 Door Way  | 2024-05-12 20:36:55 |  1 |
+|       7 |       102 |          3 | 111 Main St      | 222 Billing St | 2024-06-16 23:25:15 |  1 |
++---------+-----------+------------+------------------+----------------+---------------------+----+
+
+-- To get the bad data:
+
+WITH rn AS (
+	SELECT 
+		orderid, 
+		productid, 
+		customerid, 
+		shipaddress, 
+		billaddress, 
+		creationtime, 
+		ROW_NUMBER() OVER (PARTITION BY orderid ORDER BY creationtime DESC) AS rn 
+	FROM orders_archive
+) SELECT * 
+	FROM rn 
+	WHERE rn > 1;
++---------+-----------+------------+------------------+---------------+---------------------+----+
+| orderid | productid | customerid | shipaddress      | billaddress   | creationtime        | rn |
++---------+-----------+------------+------------------+---------------+---------------------+----+
+|       4 |       105 |          1 | 987 Victory Lane |               | 2024-04-20 05:50:33 |  2 |
+|       6 |       104 |          3 | 543 Belmont Rd.  | 3768 Door Way | 2024-05-07 13:22:05 |  2 |
+|       6 |       104 |          3 | 543 Belmont Rd.  | NULL          | 2024-05-06 15:34:57 |  3 |
++---------+-----------+------------+------------------+---------------+---------------------+----+
+
+
+-----------------------------
+
+RANK
+	Assign a rank to each row in a window, with gaps.
+	Handles ties, rows with same value have same rank.
+	If tied, both get same rank but following value doesn't get next rank in line,
+	gets the next next rank instead.
+
+Example:
+
+SELECT 
+	sales, 
+	RANK() OVER (ORDER BY sales DESC) AS SalesRank 
+FROM orders;
++-------+-----------+
+| sales | SalesRank |
++-------+-----------+
+|    90 |         1 |
+|    60 |         2 |	<- Tie
+|    60 |         2 |	<- Tie
+|    50 |         4 |	<- Following rank not 3 due to previous tie!
+|    30 |         5 |
+|    25 |         6 |
+|    20 |         7 |
+|    20 |         7 |
+|    15 |         9 |
+|    10 |        10 |
++-------+-----------+
+
+
+-----------------------------
+
+DENSE_RANK
+	Assign a rank to each row in a window, without gaps.
+	Handles ties, same values share rank.
+
+Example:
+
+SELECT 
+	sales, 
+	DENSE_RANK() OVER (ORDER BY sales DESC) AS SalesDenseRank 
+FROM orders;
++-------+----------------+
+| sales | SalesDenseRank |
++-------+----------------+
+|    90 |              1 |
+|    60 |              2 |	<- Tie
+|    60 |              2 |	<- Tie
+|    50 |              3 |	<- Following tie, next value the very next rank, no skip
+|    30 |              4 |
+|    25 |              5 |
+|    20 |              6 |
+|    20 |              6 |
+|    15 |              7 |
+|    10 |              8 |
++-------+----------------+
+
+-----------------------------
+
+CUME_DIST
+	Calculates the cumulative distribution of a value within a set of values.
+
+	Position # / # of Rows
+
+Example:
+
+SELECT 
+	sales, 
+	CUME_DIST() OVER (ORDER BY sales) AS SalesCumeDist 
+FROM orders;
++-------+---------------+
+| sales | SalesCumeDist |
++-------+---------------+
+|    10 |           0.1 |
+|    15 |           0.2 |
+|    20 |           0.4 |
+|    20 |           0.4 |
+|    25 |           0.5 |
+|    30 |           0.6 |
+|    50 |           0.7 |
+|    60 |           0.9 |
+|    60 |           0.9 |
+|    90 |             1 |
++-------+---------------+
+
+--Highest to lowest:
+
+SELECT 
+	sales, 
+	CUME_DIST() OVER (ORDER BY sales DESC) AS SalesCumeDist 
+FROM orders;
++-------+---------------+
+| sales | SalesCumeDist |
++-------+---------------+
+|    90 |           0.1 |	-> 1 / 10 
+|    60 |           0.3 |	-> 2 / 10 = 1 / 5
+|    60 |           0.3 |
+|    50 |           0.4 |
+|    30 |           0.5 |
+|    25 |           0.6 |
+|    20 |           0.8 |
+|    20 |           0.8 |
+|    15 |           0.9 |
+|    10 |             1 |
++-------+---------------+
+
+-----------------------------
+
+PERCENT_RANK
+	Returns the percentile ranking number of a row.
+
+	Percent_Rank = Position # - 1 / # of Rows - 1
+
+	Tie Rule: The position of the first occurence of the same value.
+
+	Always 0 -> 1.
+
+Example:
+
+SELECT 
+	sales, 
+	CAST(PERCENT_RANK() OVER (ORDER BY sales) AS DECIMAL(10, 3)) AS SalesPercentRank 
+FROM orders;
++-------+------------------+
+| sales | SalesPercentRank |
++-------+------------------+
+|    10 |            0.000 |
+|    15 |            0.111 |
+|    20 |            0.222 |
+|    20 |            0.222 |
+|    25 |            0.444 |
+|    30 |            0.556 |
+|    50 |            0.667 |
+|    60 |            0.778 |
+|    60 |            0.778 |
+|    90 |            1.000 |
++-------+------------------+
+
+--Highest to lowest:
+
+SELECT 
+	sales, 
+	CAST(PERCENT_RANK() OVER (ORDER BY sales DESC) AS DECIMAL(10, 3)) AS SalesPercentRank 
+FROM orders;
++-------+------------------+
+| sales | SalesPercentRank |
++-------+------------------+
+|    90 |            0.000 |	<- 1 - 1 / 10 - 1 = 0
+|    60 |            0.111 |	<- 2 - 1 / 10 - 1 = 1 / 9
+|    60 |            0.111 |
+|    50 |            0.333 |
+|    30 |            0.444 |
+|    25 |            0.556 |
+|    20 |            0.667 |
+|    20 |            0.667 |
+|    15 |            0.889 |
+|    10 |            1.000 |
++-------+------------------+
+
+-------------------------
+
+Use Cases:
+
+Find the products that fall within the highest 40% of the prices:
+
+WITH DistRank AS (
+	SELECT 
+		product, 
+		price, 
+		CUME_DIST() OVER (ORDER BY price DESC) AS DistRank 
+	FROM products
+) SELECT * 
+	FROM DistRank 
+	WHERE DistRank <= 0.4;
++---------+-------+----------+
+| product | price | DistRank |
++---------+-------+----------+
+| Gloves  |    30 |      0.2 |
+| Caps    |    25 |      0.4 |
++---------+-------+----------+
+
+-----------------------------
+
+NTILE
+	Divides the rows into a specified number of approx. equal groups (Buckets).
+	Bucket Size = # of rows / # of buckets
+
+Example:
+
+SELECT 
+	sales, 
+	NTILE(2) OVER (ORDER BY sales) AS SalesNTile 
+FROM orders;
++-------+------------+
+| sales | SalesNTile |
++-------+------------+
+|    10 |          1 |
+|    15 |          1 |
+|    20 |          1 |
+|    20 |          1 |
+|    25 |          1 |
+|    30 |          2 |
+|    50 |          2 |
+|    60 |          2 |
+|    60 |          2 |
+|    90 |          2 |
++-------+------------+
+
+(Bucket size = 10 / 2 = 5)
+
+---------------------------
+
+SELECT 
+	sales, 
+	NTILE(4) OVER (ORDER BY sales) AS SalesNTile 
+FROM orders;
++-------+------------+
+| sales | SalesNTile |
++-------+------------+
+|    10 |          1 |
+|    15 |          1 |
+|    20 |          1 |
+|    20 |          2 |
+|    25 |          2 |
+|    30 |          2 |
+|    50 |          3 |
+|    60 |          3 |
+|    60 |          4 |
+|    90 |          4 |
++-------+------------+
+
+(Bucket size = 10 / 4 = 2.5 (2-3)) 
+(With fractional, larger groups come first, then smaller groups)
+
+------------------------
+
+-- Highest to lowest:
+
+SELECT 
+	sales, 
+	NTILE(2) OVER (ORDER BY sales DESC) AS SalesNTile 
+FROM orders;
++-------+------------+
+| sales | SalesNTile |
++-------+------------+
+|    90 |          1 |
+|    60 |          1 |
+|    60 |          1 |
+|    50 |          1 |
+|    30 |          1 |
+|    25 |          2 |
+|    20 |          2 |
+|    20 |          2 |
+|    15 |          2 |
+|    10 |          2 |
++-------+------------+
+
+-----------------------
+
+Use Cases:
+
+--------------
+
+Data Analyst: Data Segmentation
+	Divides a dataset into distinct subsets based on certain criteria.
+
+--Segment all orders into 3 categories: high, medium, and low sales:
+
+WITH Buckets AS (
+	SELECT 
+		orderid, 
+		sales, 
+		NTILE(3) OVER (ORDER BY sales DESC) AS Buckets 
+	FROM orders
+) SELECT 
+	orderid, 
+	sales, 
+	CASE 
+		WHEN Buckets = 1 THEN 'High' 
+		WHEN Buckets = 2 THEN 'Medium' 
+		ELSE 'Low' 
+	END AS Buckets 
+FROM Buckets;
++---------+-------+---------+
+| orderid | sales | Buckets |
++---------+-------+---------+
+|       8 |    90 | High    |
+|       4 |    60 | High    |
+|      10 |    60 | High    |
+|       6 |    50 | High    |
+|       7 |    30 | Medium  |
+|       5 |    25 | Medium  |
+|       3 |    20 | Medium  |
+|       9 |    20 | Low     |
+|       2 |    15 | Low     |
+|       1 |    10 | Low     |
++---------+-------+---------+
+
+--------------
+
+Data Engineer: Equalizing load processing
+
+Split into buckets to make load processing more manageable, less stress on networks.
+
+-- In order to export the data, divide the orders into 2 groups:
+(Best to ORDER BY primary key)
+
+SELECT 
+	NTILE(2) OVER (ORDER BY orderid) AS Buckets, 
+	orderid, 
+	productid, 
+	customerid, 
+	salespersonid, 
+	orderdate 
+FROM orders;
++---------+---------+-----------+------------+---------------+------------+
+| Buckets | orderid | productid | customerid | salespersonid | orderdate  |
++---------+---------+-----------+------------+---------------+------------+
+|       1 |       1 |       101 |          2 |             3 | 2025-01-01 |
+|       1 |       2 |       102 |          3 |             3 | 2025-01-05 |
+|       1 |       3 |       101 |          1 |             5 | 2025-01-10 |
+|       1 |       4 |       105 |          1 |             3 | 2025-01-20 |
+|       1 |       5 |       104 |          2 |             5 | 2025-02-01 |
+|       2 |       6 |       104 |          3 |             5 | 2025-02-05 |
+|       2 |       7 |       102 |          1 |             1 | 2025-02-15 |
+|       2 |       8 |       101 |          4 |             3 | 2025-02-18 |
+|       2 |       9 |       101 |          2 |             3 | 2025-03-10 |
+|       2 |      10 |       102 |          3 |             5 | 2025-03-15 |
++---------+---------+-----------+------------+---------------+------------+
+
+Split by more buckets if needed, deal with each bucket seperately when transferring
+or whatever is needed by the task.
+
+-----------------------------
+-----------------------------
+
+Value (Analytics):
+
+	Can use to access a value from another row.
+	Ex.: Compare sales of current month to previous month (LAG).
+	Or with next month (LEAD), or with first (FIRST_VALUE), or
+	with last (LAST_VALUE).
+
+				Expressions		Partitions		Order		Frame
+
+LEAD			All Data Types	Optional		Required	Not Allowed
+
+LAG				''				''				''			''
+
+FIRST_VALUE		''				''				''			Optional
+
+LAST_VALUE		''				''				''			Should Be Used
+
+-----------------------------
+
+LEAD
+	Returns value from a previous row.
+
+LEAD(Expression[, offset][, Default_Value])
+
+Expression is required (Any data type).
+Offset is number of rows forward or backward from current row (default = 1).
+Default_Value returns value if next/previous row is not available (Default = NULL).
+
+LAG
+	Returns value from a subsequent row.
+
+Examples:
+
+SELECT 
+	MONTH(orderdate), 
+	sales,
+	LEAD(sales) OVER (ORDER BY MONTH(orderdate)) AS SalesByNextMonth, 
+	LAG(sales) OVER (ORDER BY MONTH(orderdate)) AS SalesByPrevMonth 
+FROM orders;
++------------------+-------+------------------+------------------+
+| MONTH(orderdate) | sales | SalesByNextMonth | SalesByPrevMonth |
++------------------+-------+------------------+------------------+
+|                1 |    10 |               15 |             NULL |
+|                1 |    15 |               20 |               10 |
+|                1 |    20 |               60 |               15 |
+|                1 |    60 |               25 |               20 |
+|                2 |    25 |               50 |               60 |
+|                2 |    50 |               30 |               25 |
+|                2 |    30 |               90 |               50 |
+|                2 |    90 |               20 |               30 |
+|                3 |    20 |               60 |               90 |
+|                3 |    60 |             NULL |               20 |
++------------------+-------+------------------+------------------+
+
+--------------------
+
+"Time Series Analysis": The process of analyzing the data to understand
+patterns, trends, and behaviors over time.
+
+Year-over-Year (YoY): Analyze the overall growth or decline of the business's
+performance over time.
+
+Month-over-Month (MoM): Analyze short-term trends and discover patterns in seasonality.
+
+SQL Task: Analyze the month-over-month (MoM) performance by finding the
+percentage change in sales between the current and previous month:
+
+WITH MonthSales AS (
+	SELECT 
+		MONTH(orderdate) AS OrderMonth, 
+		SUM(sales) AS CurrentMonthSales, 
+		LAG(SUM(sales)) OVER (ORDER BY MONTH(orderdate)) AS PrevMonthSales 
+	FROM orders 
+	GROUP BY MONTH(orderdate)
+) SELECT 
+	*, 
+	CONCAT(
+		CAST(
+			(CurrentMonthSales - PrevMonthSales) / PrevMonthSales * 100 
+			AS DECIMAL(10, 3)
+		), '%'
+	) AS MoM_Change 
+FROM MonthSales;
++------------+-------------------+----------------+------------+
+| OrderMonth | CurrentMonthSales | PrevMonthSales | MoM_Change |
++------------+-------------------+----------------+------------+
+|          1 |               105 |           NULL | NULL       |
+|          2 |               195 |            105 | 85.714%    |
+|          3 |                80 |            195 | -58.974%   |
++------------+-------------------+----------------+------------+
+
+-----------------------------
+
+Customer Retention Analysis
+	Measure customer's behavior and loyalty to help businesses build strong
+	relationships with customers.
+
+SQL Task: 
+	Analyze customer loyalty by ranking customers based on the average
+	number of days between orders:
+
+WITH Something AS (
+	SELECT 
+		orderid, 
+		customerid, 
+		orderdate, 
+		LEAD(orderdate) OVER (PARTITION BY customerid ORDER BY orderdate) AS NextOrder, 
+		DATEDIFF(LEAD(orderdate) OVER (PARTITION BY customerid ORDER BY orderdate), orderdate) AS DaysDifferent 
+	FROM orders 
+	ORDER BY customerid, orderdate
+) SELECT 
+	customerid, 
+	AVG(DaysDifferent) AS AvgDays, 
+	RANK() OVER (ORDER BY COALESCE(AVG(DaysDifferent), 999999)) AS AvgDaysRank 
+FROM Something 
+GROUP BY customerid;
++------------+---------+-------------+
+| customerid | AvgDays | AvgDaysRank |
++------------+---------+-------------+
+|          1 | 18.0000 |           1 |
+|          2 | 34.0000 |           2 |
+|          3 | 34.5000 |           3 |
+|          4 |    NULL |           4 |
++------------+---------+-------------+
+
+-----------------------------
+
+FIRST_VALUE
+	Access a value from the first row within a window.
+
+LAST_VALUE
+	Access a value from the last row within a window.
+
+Default Frame:
+
+RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+
+Example:
+
+SELECT 
+	sales, 
+	MONTH(orderdate) AS Month, 
+	FIRST_VALUE(sales) OVER (ORDER BY MONTH(orderdate)) AS first, 
+	LAST_VALUE(sales) OVER (ORDER BY MONTH(orderdate)) AS last 
+FROM orders;
++-------+-------+-------+------+
+| sales | Month | first | last |
++-------+-------+-------+------+
+|    10 |     1 |    10 |   60 |
+|    15 |     1 |    10 |   60 |
+|    20 |     1 |    10 |   60 |
+|    60 |     1 |    10 |   60 |
+|    25 |     2 |    10 |   90 |
+|    50 |     2 |    10 |   90 |
+|    30 |     2 |    10 |   90 |
+|    90 |     2 |    10 |   90 |
+|    20 |     3 |    10 |   60 |
+|    60 |     3 |    10 |   60 |
++-------+-------+-------+------+
+
+-----------!!!----------------
+
+LAST_VALUE Must specify Frame!
+
+SELECT 
+	sales, 
+	MONTH(orderdate) AS Month, 
+	FIRST_VALUE(sales) OVER (ORDER BY MONTH(orderdate)) AS first, 
+	LAST_VALUE(sales) OVER (
+		ORDER BY MONTH(orderdate) 
+		RANGE BETWEEN 
+			CURRENT ROW 
+			AND 
+			UNBOUNDED FOLLOWING
+	) AS last 
+FROM orders;
++-------+-------+-------+------+
+| sales | Month | first | last |
++-------+-------+-------+------+
+|    10 |     1 |    10 |   60 |
+|    15 |     1 |    10 |   60 |
+|    20 |     1 |    10 |   60 |
+|    60 |     1 |    10 |   60 |
+|    25 |     2 |    10 |   60 |
+|    50 |     2 |    10 |   60 |
+|    30 |     2 |    10 |   60 |
+|    90 |     2 |    10 |   60 |
+|    20 |     3 |    10 |   60 |
+|    60 |     3 |    10 |   60 |
++-------+-------+-------+------+
+
+-- Find the lowest and highest sales for each product:
+
+SELECT 
+	orderid, 
+	productid, 
+	sales, 
+	FIRST_VALUE(sales) OVER (PARTITION BY productid ORDER BY sales) AS LowestSales, 
+	LAST_VALUE(sales) OVER (
+		PARTITION BY productid 
+		ORDER BY sales 
+		RANGE BETWEEN 
+			CURRENT ROW 
+			AND 
+			UNBOUNDED FOLLOWING
+	) AS HighestSales 
+FROM orders;
++---------+-----------+-------+-------------+--------------+
+| orderid | productid | sales | LowestSales | HighestSales |
++---------+-----------+-------+-------------+--------------+
+|       1 |       101 |    10 |          10 |           90 |
+|       3 |       101 |    20 |          10 |           90 |
+|       9 |       101 |    20 |          10 |           90 |
+|       8 |       101 |    90 |          10 |           90 |
+|       2 |       102 |    15 |          15 |           60 |
+|       7 |       102 |    30 |          15 |           60 |
+|      10 |       102 |    60 |          15 |           60 |
+|       5 |       104 |    25 |          25 |           50 |
+|       6 |       104 |    50 |          25 |           50 |
+|       4 |       105 |    60 |          60 |           60 |
++---------+-----------+-------+-------------+--------------+
+
+(Use DESC in ORDER BY to change order to highest to lowest)
+
+Can get exact same results using MIN and MAX aggregrate Window functions.
+(But less flexibility)
+
+----------------------------
+
+Use Cases:
+
+Time-Series Analysis: MoM + YoY
+
+Time Gaps Analysis: Customer Retention
+
+Comparison Analysis: Extreme: Highest, Lowest
+

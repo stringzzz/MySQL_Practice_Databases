@@ -1,0 +1,308 @@
+[Views]
+
+-------------------
+Database Structure
+-------------------
+
+DDL (Data Definition Language):
+	A set of commands that allows us to define and manage the structure of a database.
+
+Database Server:
+	Stores manages, and provides access to databases for users or applications.
+
+|
+v
+
+Database:
+	Collection of information that is stored in a structured way.
+
+|
+v
+
+Schema:
+	Logical layer that groups related objects together.
+
+|
+v
+
+Table:
+	A place where data is stored and organized into rows and columns.
+
+OR
+
+View:
+	A virtual table that shows data without storing it physically.
+	Doesn't store data permanently.
+
+---------------
+
+Database 3 Level Architecture (3 Abstraction levels):
+(More abstract going up from Physical) 
+
+View Level (AKA External)
+	Users:
+		Business Analysts
+		POWER BI
+		End Users
+		etc.
+
+	Only views
+
+Logical Level (AKA Conceptual)
+	App Developer (Data Engineer)
+	
+	Tables
+	Relationships
+	Views
+	Indexes
+	Procedures
+	Functions
+
+Physical Level (AKA Internal)
+	DB Administrator
+	
+	DB
+	Data Files
+	Partittions
+	Logs
+	Catalog
+	Blocks
+	Caches
+
+---------------
+
+View:
+	Virtual table based on the result set of a query, without storing the data in the DB.
+	Views are persisted SQL queries in DB.
+
+VIEWS						TABLES
+
+No persistance				Persisted Data
+Easy to maintain			Hard to maintain
+Slow Response				Fast Response
+Read only					Read/Write
+
+-----------------
+
+Use Cases:
+
+Central Query Logic: Store central, complex query logic in the database,
+for access by multiple queries, reducing project complexity.
+
+If multiple users do the same task such as with a CTE, maybe should store the CTE as
+a view so all users can just use that view instead of all writing the same CTE each time.
+
+VIEWS											CTE
+
+Reduce redundancy in multi-queries				Reduce redundancy in 1 query
+Improve reusability in multi-queries			Improve reusability in 1 query
+Persisted Logic									Temporary logic (on the fly)
+Need to maintain (Create/Drop)					No maintenance (Auto cleanup)
+
+------------------
+
+SQL Views:
+
+CREATE
+
+CREATE VIEW View_Name AS (Query)
+
+If a Table or View is created without specifying a schema, it defaults to the DBO.
+(Maybe in SQL Server, but doesn't seem to in MySQL?)
+(Found under 'salesdb.')
+
+Example:
+
+CREATE VIEW V_Monthly_Summary AS (
+	SELECT 
+		MONTH(orderdate) AS OrderMonth, 
+		SUM(sales) AS TotalSales, COUNT(orderid) AS TotalOrders, 
+		SUM(quantity) AS TotalQuantity 
+	FROM orders 
+	GROUP BY MONTH(orderdate)
+);
+Query OK, 0 rows affected (0.17 sec)
+SELECT * FROM V_Monthly_Summary;
++------------+------------+-------------+---------------+
+| OrderMonth | TotalSales | TotalOrders | TotalQuantity |
++------------+------------+-------------+---------------+
+|          1 |        105 |           4 |             6 |
+|          2 |        195 |           4 |             8 |
+|          3 |         80 |           2 |             2 |
++------------+------------+-------------+---------------+
+
+SELECT 
+	OrderMonth, 
+	SUM(TotalSales) OVER (ORDER BY OrderMonth) AS RunningTotal 
+FROM V_Monthly_Summary;
++------------+--------------+
+| OrderMonth | RunningTotal |
++------------+--------------+
+|          1 |          105 |
+|          2 |          300 |
+|          3 |          380 |
++------------+--------------+
+
+------------------------
+
+UPDATE
+
+In MySQL:
+mysql> CREATE OR REPLACE VIEW V_Monthly_Summary AS (
+	SELECT 
+		MONTH(orderdate) AS OrderMonth, 
+		SUM(sales) AS TotalSales, 
+		COUNT(orderid) AS TotalOrders, 
+		SUM(quantity) AS TotalQuantity 
+	FROM orders 
+	GROUP BY MONTH(orderdate)
+);
+Query OK, 0 rows affected (0.15 sec)
+
+------------------------
+
+DROP
+
+DROP VIEW View_Name
+
+Example:
+
+DROP VIEW V_Monthly_Summary;
+Query OK, 0 rows affected (0.24 sec)
+
+------------------------
+
+Data Engineer (DE) -> CREATE VIEW -> DB Engine -> Disk: Catalog (Metadata)
+
+Data Analyst (DA) -> Query -> DB Engine -> Disk: Catalog -> View
+View -> DB Engine -> View Query -> Disk: User -> View Query -> DB Engine -> Query -> DA
+
+DROP VIEW only drops metadata, doesn't drop any tables or actual data contained.
+
+-------------------------
+
+Use Case:
+
+Views can be used to hide the complexity of database tables and offers users more
+friendly and easy-to-consume objects.
+
+Some DBs can be very complex with cryptic table names and relationships between them.
+
+DBA can create views that are an abstraction of these complexities.
+
+Example:
+
+-- Provide a view that combines details from orders, products, customers, and employees:
+
+CREATE VIEW V_Order_Details AS (
+	SELECT 
+		o.orderid, 
+		o.orderdate, 
+		p.product, 
+		p.category, 
+		CONCAT(COALESCE(c.firstname, ''), ' ', COALESCE(c.lastname, '')) AS CustName, 
+		CONCAT(COALESCE(e.firstname, ''), ' ', COALESCE(e.lastname, '')) AS SalesName, 
+		e.department, 
+		o.sales, 
+		o.quantity 
+	FROM orders o 
+	LEFT JOIN products p 
+	ON p.productid = o.productid 
+	LEFT JOIN customers c 
+	ON c.customerid = o.customerid 
+	LEFT JOIN employees e 
+	ON e.employeeid = o.salespersonid
+);
+
+mysql> SELECT * FROM V_Order_Details;
++---------+------------+---------+-------------+-----------------+-------------+------------+-------+----------+
+| orderid | orderdate  | product | category    | CustName        | SalesName   | department | sales | quantity |
++---------+------------+---------+-------------+-----------------+-------------+------------+-------+----------+
+|       1 | 2025-01-01 | Bottle  | Accessories | Kevin Brown     | Mary        | Sales      |    10 |        1 |
+|       2 | 2025-01-05 | Tire    | Accessories | Mary            | Mary        | Sales      |    15 |        1 |
+|       3 | 2025-01-10 | Bottle  | Accessories | Jossef Goldberg | Carol Baker | Sales      |    20 |        2 |
+|       4 | 2025-01-20 | Gloves  | Clothing    | Jossef Goldberg | Mary        | Sales      |    60 |        2 |
+|       5 | 2025-02-01 | Caps    | Clothing    | Kevin Brown     | Carol Baker | Sales      |    25 |        1 |
+|       6 | 2025-02-05 | Caps    | Clothing    | Mary            | Carol Baker | Sales      |    50 |        2 |
+|       7 | 2025-02-15 | Tire    | Accessories | Jossef Goldberg | Frank Lee   | Marketing  |    30 |        2 |
+|       8 | 2025-02-18 | Bottle  | Accessories | Mark Schwarz    | Mary        | Sales      |    90 |        3 |
+|       9 | 2025-03-10 | Bottle  | Accessories | Kevin Brown     | Mary        | Sales      |    20 |        2 |
+|      10 | 2025-03-15 | Tire    | Accessories | Mary            | Carol Baker | Sales      |    60 |        0 |
++---------+------------+---------+-------------+-----------------+-------------+------------+-------+----------+
+
+-----------------------
+
+Views Use Case:
+	Use views to enforce security and protect sensitive data by hiding columns and/or rows from tables.
+
+Shouldn't give same level of access to all users, remove access to actual, physical tables by using views.
+
+Create different view for each level of user.
+
+All Data, Column-Security, Column-Security/Row-Security.
+
+Example:
+
+--Provide a view for EU Sales Team that combines the details from all tables AND excludes data related to the USA:
+
+CREATE VIEW V_Order_Details_EU AS (
+	SELECT 
+		o.orderid, 
+		o.orderdate, 
+		p.product, 
+		p.category, 
+		CONCAT(COALESCE(c.firstname, ''), ' ', COALESCE(c.lastname, '')) AS CustName, 
+		CONCAT(COALESCE(e.firstname, ''), ' ', COALESCE(e.lastname, '')) AS SalesName, 
+		e.department, 
+		o.sales, 
+		o.quantity 
+	FROM orders o 
+	LEFT JOIN products p 
+	ON p.productid = o.productid 
+	LEFT JOIN customers c 
+	ON c.customerid = o.customerid 
+	LEFT JOIN employees e 
+	ON e.employeeid = o.salespersonid 
+	WHERE c.country != 'USA'
+);
+
+SELECT * FROM V_Order_Details_EU;
++---------+------------+---------+-------------+-----------------+-------------+------------+-------+----------+
+| orderid | orderdate  | product | category    | CustName        | SalesName   | department | sales | quantity |
++---------+------------+---------+-------------+-----------------+-------------+------------+-------+----------+
+|       3 | 2025-01-10 | Bottle  | Accessories | Jossef Goldberg | Carol Baker | Sales      |    20 |        2 |
+|       4 | 2025-01-20 | Gloves  | Clothing    | Jossef Goldberg | Mary        | Sales      |    60 |        2 |
+|       7 | 2025-02-15 | Tire    | Accessories | Jossef Goldberg | Frank Lee   | Marketing  |    30 |        2 |
+|       8 | 2025-02-18 | Bottle  | Accessories | Mark Schwarz    | Mary        | Sales      |    90 |        3 |
++---------+------------+---------+-------------+-----------------+-------------+------------+-------+----------+
+
+----------------------
+
+Use Case:
+
+More flexibility in project, doing lots of changes in tables.
+That means all the users now have to change their complex queries with every change.
+So, changes can't be made without talking to tons of users.
+
+Solution: Make view given old structure users are using, but make changes to actual tables.
+
+----------------------
+
+Use Case:
+
+Can make several versions (views) of the data model, one for each language (English, Spanish, German, etc.).
+
+This includes changing names of tables, columns, and so on.
+
+----------------------
+
+Use Case:
+
+Views can be used as 'Data Marts' in Data Warehouse System because they provide a 
+flexible and efficient way to present data.
+
+Source Systems -> Data Warehouse -> Data Marts (Sales Mart, Finance Mart, etc.) -> Reporting
+
+If building Data Marts, should use VIEWs, have as Virtual Layer as opposed to the 
+Physical Layer of the Data Warehouse.
+
